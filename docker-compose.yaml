@@ -2,4 +2,6 @@ services:
   alb_reporter_app:
     build: .
     container_name: alb_reporter_container
+    ports:
+      - "4055:443"
     restart: unless-stopped
