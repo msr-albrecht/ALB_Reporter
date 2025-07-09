@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Berichtdetails</title>
+    <link rel="stylesheet" href="style.css" type="text/css">
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <h1>📊 Berichtdetails</h1>
+        <p>Detaillierte Ansicht des ausgewählten Berichts</p>
+    </div>
+
+    <div class="report-detail-container">
+        <div class="report-detail-header">
+            <button id="backBtn" class="btn-back">← Zurück zur Übersicht</button>
+            <div class="report-actions">
+                <a id="downloadBtn" href="#" target="_blank" class="btn-download">📄 Herunterladen</a>
+                <a id="viewBtn" href="#" target="_blank" class="btn-open">👁️ Datei öffnen</a>
+            </div>
+        </div>
+
+        <div id="reportContent" class="report-content">
+            <div class="loading">Lade Berichtdetails...</div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const reportId = urlParams.get('id');
+
+    const backBtn = document.getElementById('backBtn');
+    const downloadBtn = document.getElementById('downloadBtn');
+    const viewBtn = document.getElementById('viewBtn');
+    const reportContent = document.getElementById('reportContent');
+
+    if (!reportId) {
+        reportContent.innerHTML = '<div class="error">Keine Bericht-ID angegeben</div>';
+        return;
+    }
+
+    // Zurück-Button Handler
+    backBtn.addEventListener('click', function() {
+        window.location.href = '/';
+    });
+
+    // Berichtdetails laden
+    loadReportDetails(reportId);
+
+    async function loadReportDetails(id) {
+        try {
+            const response = await fetch(`/api/reports/${id}`);
+            const result = await response.json();
+
+            if (result.success && result.report) {
+                displayReportDetails(result.report);
+
+                // Download und View Links setzen
+                downloadBtn.href = `/api/reports/${id}/download`;
+                viewBtn.href = `/api/reports/${id}/view`;
+            } else {
+                reportContent.innerHTML = '<div class="error">Bericht nicht gefunden</div>';
+            }
+        } catch (error) {
+            console.error('Error loading report details:', error);
+            reportContent.innerHTML = '<div class="error">Fehler beim Laden der Berichtdetails</div>';
+        }
+    }
+
+    function displayReportDetails(report) {
+        const mitarbeiterList = JSON.parse(report.mitarbeiter || '[]');
+        const documentTypeDisplay = getDocumentTypeDisplay(report.documentType);
+
+        reportContent.innerHTML = `
+            <div class="report-detail-card">
+                <div class="report-detail-header-info">
+                    <h2>${report.fileName || `Bericht #${report.reportNumber.toString().padStart(4, '0')}`}</h2>
+                    <span class="report-type-badge">${documentTypeDisplay}</span>
+                </div>
+
+                <div class="report-detail-grid">
+                    <div class="detail-section">
+                        <h3>📋 Grundinformationen</h3>
+                        <div class="detail-item">
+                            <span class="detail-label">Berichtsnummer:</span>
+                            <span class="detail-value">#${report.reportNumber.toString().padStart(4, '0')}</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Dokumenttyp:</span>
+                            <span class="detail-value">${documentTypeDisplay}</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Erstellt am:</span>
+                            <span class="detail-value">${new Date(report.createdAt).toLocaleString('de-DE')}</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Dateiname:</span>
+                            <span class="detail-value">${report.fileName}</span>
+                        </div>
+                    </div>
+
+                    <div class="detail-section">
+                        <h3>🏢 Projektinformationen</h3>
+                        <div class="detail-item">
+                            <span class="detail-label">Kürzel:</span>
+                            <span class="detail-value">${report.kuerzel}</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Kunde:</span>
+                            <span class="detail-value">${report.kunde || 'N/A'}</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Baustelle:</span>
+                            <span class="detail-value">${report.baustelle || 'N/A'}</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Auftragsnummer:</span>
+                            <span class="detail-value">${report.auftragsNr || 'N/A'}</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Vergabenummer:</span>
+                            <span class="detail-value">${report.vergNr || 'N/A'}</span>
+                        </div>
+                    </div>
+
+                    <div class="detail-section">
+                        <h3>📅 Arbeitsdetails</h3>
+                        <div class="detail-item">
+                            <span class="detail-label">Arbeitsdatum:</span>
+                            <span class="detail-value">${report.arbeitsdatum || 'N/A'}</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Arbeitszeit:</span>
+                            <span class="detail-value">${report.arbeitszeit || 'N/A'}</span>
+                        </div>
+                        ${report.zusatzInformationen ? `
+                        <div class="detail-item">
+                            <span class="detail-label">Zusatzinformationen:</span>
+                            <span class="detail-value">${report.zusatzInformationen}</span>
+                        </div>
+                        ` : ''}
+                    </div>
+
+                    <div class="detail-section full-width">
+                        <h3>👥 Mitarbeiter</h3>
+                        <div class="mitarbeiter-grid">
+                            ${mitarbeiterList.map((mitarbeiter, index) => `
+                                <div class="mitarbeiter-card">
+                                    <div class="mitarbeiter-name">${mitarbeiter.name}</div>
+                                    <div class="mitarbeiter-qualification">${mitarbeiter.qualifikation}</div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    function getDocumentTypeDisplay(type) {
+        switch(type) {
+            case 'bautagesbericht': return '📊 Bautagesbericht';
+            case 'regiebericht': return '📋 Regiebericht';
+            case 'regieantrag': return '📝 Regieantrag';
+            default: return type;
+        }
+    }
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,6 @@
+services:
+  nginx:
+    image: nginx:latest
+    restart: always 
+    ports:
+      - "187187:80"
