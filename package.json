@@ -1,7 +1,7 @@
 {
   "name": "report-generator-backend",
   "version": "1.0.0",
-  "description": "Backend service for generating Word reports with database storage",
+  "description": "Backend service for generating Word reports with OneDrive integration",
   "main": "dist/server.js",
   "scripts": {
     "build": "tsc",
@@ -13,6 +13,7 @@
     "axios": "^1.10.0",
     "cors": "^2.8.5",
     "docx": "^8.5.0",
+    "dotenv": "^17.1.0",
     "express": "^4.21.2",
     "multer": "^1.4.5-lts.1",
     "sqlite3": "^5.1.6",
@@ -32,7 +33,8 @@
     "express",
     "word-generation",
     "sqlite",
-    "reports"
+    "reports",
+    "onedrive"
   ],
   "author": "Report Generator",
   "license": "MIT"

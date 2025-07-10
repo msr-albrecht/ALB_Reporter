@@ -1,10 +1,13 @@
+import dotenv from 'dotenv';
+dotenv.config();
+
 import express from 'express';
 import cors from 'cors';
 import path from 'path';
 import { reportRouter } from './modules/routes';
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 4055;
 
 app.use(cors());
 app.use(express.json());
@@ -38,7 +41,7 @@ app.use((err: any, req: express.Request, res: express.Response, next: express.Ne
     });
 });
 
-app.listen(PORT, () => {
+app.listen(80, () => {
     console.log(`Server läuft auf Port ${PORT}`);
     console.log(`Frontend: http://localhost:${PORT}`);
     console.log(`API: http://localhost:${PORT}/api`);

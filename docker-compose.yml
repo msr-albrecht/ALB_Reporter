@@ -1,0 +1,29 @@
+services:
+  app:
+    build: .
+    container_name: alb_reporter_container
+    ports:
+      - "4055:80"
+    volumes:
+      # Generierte Berichte persistent speichern
+      - ./generated_reports:/app/generated_reports
+      # OneDrive Mirror-Ordner für Fallback
+      - ./onedrive_shared:/app/onedrive_shared
+      # Echter OneDrive-Ordner mounten
+      - C:/Users/User/OneDrive:/app/OneDrive
+      # CSV-Dateien einbinden
+      - ./arbeiter.csv:/app/arbeiter.csv
+      # .env Datei für OneDrive-Konfiguration
+      - ./.env:/app/.env
+      # Datenbank in named volume speichern (nicht als Datei-Mapping)
+      - db-data:/app/db
+    environment:
+      - NODE_ENV=production
+      - DB_PATH=/app/db/reports.db
+      # OneDrive-Pfad im Container setzen
+      - ONEDRIVE_LOCAL_PATH=/app/OneDrive
+    restart: unless-stopped
+
+
+volumes:
+  db-data:

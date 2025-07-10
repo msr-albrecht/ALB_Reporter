@@ -11,6 +11,10 @@ export interface ReportData {
     createdAt: string;
     fileName: string;
     filePath: string;
+    // Cloud Storage Felder hinzufügen
+    cloudUrl?: string;
+    cloudKey?: string;
+    isCloudStored?: boolean;
     arbeitsdatum?: string;
     arbeitszeit?: string;
     zusatzInformationen?: string;
@@ -21,8 +25,16 @@ export class DatabaseManager {
     private dbPath: string;
     private tableNames: Map<string, string>;
 
-    constructor(dbPath: string = './reports.db') {
-        this.dbPath = dbPath;
+    constructor(dbPath?: string) {
+        // Verwende Umgebungsvariable oder Standard-Pfad
+        this.dbPath = dbPath || process.env.DB_PATH || './reports.db';
+
+        // Erstelle Verzeichnis falls es nicht existiert (für Docker Volume)
+        const dbDir = path.dirname(this.dbPath);
+        if (!require('fs').existsSync(dbDir)) {
+            require('fs').mkdirSync(dbDir, { recursive: true });
+        }
+
         this.tableNames = new Map();
 
         // Definiere die Tabellennamen für jeden Dokumenttyp
@@ -50,6 +62,7 @@ export class DatabaseManager {
         // Erstelle Tabellen für alle Dokumenttypen
         for (const [documentType, tableName] of this.tableNames) {
             await this.createTable(tableName);
+            await this.updateTableSchema(tableName);
         }
     }
 
@@ -65,6 +78,9 @@ export class DatabaseManager {
                     createdAt TEXT NOT NULL,
                     fileName TEXT NOT NULL,
                     filePath TEXT NOT NULL,
+                    cloudUrl TEXT,
+                    cloudKey TEXT,
+                    isCloudStored BOOLEAN,
                     arbeitsdatum TEXT,
                     arbeitszeit TEXT,
                     zusatzInformationen TEXT,
@@ -79,6 +95,66 @@ export class DatabaseManager {
                 } else {
                     resolve();
                 }
+            });
+        });
+    }
+
+    private async updateTableSchema(tableName: string): Promise<void> {
+        return new Promise((resolve, reject) => {
+            // Prüfe ob die Cloud-Spalten bereits existieren
+            this.db.get(`PRAGMA table_info(${tableName})`, (err, rows) => {
+                if (err) {
+                    console.error(`Error checking table schema for ${tableName}:`, err);
+                    reject(err);
+                    return;
+                }
+
+                // Hole alle Spaltennamen
+                this.db.all(`PRAGMA table_info(${tableName})`, (err, columns: any[]) => {
+                    if (err) {
+                        console.error(`Error getting column info for ${tableName}:`, err);
+                        reject(err);
+                        return;
+                    }
+
+                    const columnNames = columns.map(col => col.name);
+                    const alterQueries: string[] = [];
+
+                    // Prüfe und füge fehlende Spalten hinzu
+                    if (!columnNames.includes('cloudUrl')) {
+                        alterQueries.push(`ALTER TABLE ${tableName} ADD COLUMN cloudUrl TEXT`);
+                    }
+                    if (!columnNames.includes('cloudKey')) {
+                        alterQueries.push(`ALTER TABLE ${tableName} ADD COLUMN cloudKey TEXT`);
+                    }
+                    if (!columnNames.includes('isCloudStored')) {
+                        alterQueries.push(`ALTER TABLE ${tableName} ADD COLUMN isCloudStored BOOLEAN DEFAULT 0`);
+                    }
+
+                    // Führe alle ALTER TABLE Befehle aus
+                    if (alterQueries.length > 0) {
+                        console.log(`Updating schema for table ${tableName}...`);
+                        let completed = 0;
+                        const total = alterQueries.length;
+
+                        alterQueries.forEach(query => {
+                            this.db.run(query, (err) => {
+                                if (err) {
+                                    console.error(`Error altering table ${tableName}:`, err);
+                                    reject(err);
+                                } else {
+                                    completed++;
+                                    if (completed === total) {
+                                        console.log(`Schema update completed for table ${tableName}`);
+                                        resolve();
+                                    }
+                                }
+                            });
+                        });
+                    } else {
+                        resolve();
+                    }
+                });
             });
         });
     }
@@ -106,8 +182,8 @@ export class DatabaseManager {
 
         return new Promise((resolve, reject) => {
             const query = `
-                INSERT INTO ${tableName} (id, documentType, kuerzel, mitarbeiter, reportNumber, createdAt, fileName, filePath, arbeitsdatum, arbeitszeit, zusatzInformationen)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO ${tableName} (id, documentType, kuerzel, mitarbeiter, reportNumber, createdAt, fileName, filePath, cloudUrl, cloudKey, isCloudStored, arbeitsdatum, arbeitszeit, zusatzInformationen)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             `;
 
             const values = [
@@ -119,6 +195,9 @@ export class DatabaseManager {
                 fullReportData.createdAt,
                 fullReportData.fileName,
                 fullReportData.filePath,
+                fullReportData.cloudUrl || null,
+                fullReportData.cloudKey || null,
+                fullReportData.isCloudStored ? 1 : 0,
                 fullReportData.arbeitsdatum || null,
                 fullReportData.arbeitszeit || null,
                 fullReportData.zusatzInformationen || null

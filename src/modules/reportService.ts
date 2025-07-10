@@ -2,6 +2,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { DatabaseManager, ReportData } from './database';
 import { BautagesberichtGenerator } from './BautagesberichtGenerator';
 import { RegieGenerator } from './RegieGenerator';
+import { CloudStorageService } from './cloudStorageOneDrive';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -44,9 +45,11 @@ export class ReportService {
     private dbManager: DatabaseManager;
     private bautagesberichtGenerator: BautagesberichtGenerator;
     private regieGenerator: RegieGenerator;
+    private cloudStorage: CloudStorageService;
 
     constructor() {
         this.dbManager = new DatabaseManager();
+        this.cloudStorage = new CloudStorageService();
         this.bautagesberichtGenerator = new BautagesberichtGenerator({
             outputDir: './generated_reports/bautagesberichte'
         });
@@ -99,21 +102,49 @@ export class ReportService {
                     documentName = 'Bautagesbericht';
             }
 
+            // Dokument lokal generieren
             const { filePath, fileName } = await generator.generateWordDocument(savedReport, request);
 
-            savedReport.fileName = fileName;
-            savedReport.filePath = filePath;
-
-            await this.dbManager.deleteReport(reportId);
-            const finalReport = await this.dbManager.saveReport({
+            // Versuche Cloud-Upload
+            let finalReportData = {
                 ...reportData,
                 fileName,
                 filePath,
-            });
+                isCloudStored: false
+            };
+
+            if (this.cloudStorage.isEnabled()) {
+                console.log('Uploade Bericht in die Cloud...');
+                const uploadResult = await this.cloudStorage.uploadFile(filePath, fileName, request.documentType);
+
+                if (uploadResult.success && uploadResult.fileUrl) {
+                    finalReportData = {
+                        ...finalReportData,
+                        cloudUrl: uploadResult.fileUrl,
+                        cloudKey: uploadResult.localPath || uploadResult.fileUrl, // Verwende localPath oder fileUrl als cloudKey
+                        isCloudStored: true,
+                        filePath: uploadResult.localPath || filePath // Verwende localPath falls verfügbar
+                    };
+                    console.log('Cloud-Upload erfolgreich:', uploadResult.fileUrl);
+                    if (uploadResult.localPath) {
+                        console.log('Datei in lokalen OneDrive-Ordner kopiert:', uploadResult.localPath);
+                    }
+                } else {
+                    console.warn('Cloud-Upload fehlgeschlagen, verwende lokalen Speicher:', uploadResult.error);
+                }
+            } else {
+                console.log('Cloud-Speicher nicht verfügbar, verwende lokalen Speicher');
+            }
+
+            // Report mit finalen Daten speichern
+            await this.dbManager.deleteReport(reportId);
+            const finalReport = await this.dbManager.saveReport(finalReportData);
+
+            const storageInfo = finalReport.isCloudStored ? 'in der Cloud' : 'lokal';
 
             return {
                 success: true,
-                message: `${documentName} #${finalReport.reportNumber.toString().padStart(4, '0')} wurde erfolgreich erstellt`,
+                message: `${documentName} #${finalReport.reportNumber.toString().padStart(4, '0')} wurde erfolgreich erstellt und ${storageInfo} gespeichert`,
                 reportData: finalReport,
                 downloadUrl: `/api/reports/${finalReport.id}/download`
             };
@@ -151,20 +182,38 @@ export class ReportService {
         }
     }
 
-    async downloadReport(id: string): Promise<{ filePath: string; fileName: string } | null> {
+    async downloadReport(id: string): Promise<{ filePath?: string; fileName: string; downloadUrl?: string; isCloudStored?: boolean } | null> {
         try {
             const report = await this.dbManager.getReportById(id);
             if (!report) {
                 return null;
             }
 
+            // Wenn Cloud-gespeichert, generiere Download-URL
+            if (report.isCloudStored && report.cloudKey && this.cloudStorage.isEnabled()) {
+                const downloadResult = await this.cloudStorage.getDownloadUrl(report.cloudKey);
+
+                if (downloadResult.success && downloadResult.downloadUrl) {
+                    return {
+                        fileName: report.fileName,
+                        downloadUrl: downloadResult.downloadUrl,
+                        isCloudStored: true
+                    };
+                } else {
+                    console.error('Fehler beim Generieren der Cloud-Download-URL:', downloadResult.error);
+                    return null;
+                }
+            }
+
+            // Fallback auf lokale Datei
             if (!fs.existsSync(report.filePath)) {
                 return null;
             }
 
             return {
                 filePath: report.filePath,
-                fileName: report.fileName
+                fileName: report.fileName,
+                isCloudStored: false
             };
         } catch (error) {
             return null;
@@ -178,6 +227,15 @@ export class ReportService {
                 return false;
             }
 
+            // Cloud-Datei löschen falls vorhanden
+            if (report.isCloudStored && report.cloudKey && this.cloudStorage.isEnabled()) {
+                const cloudDeleted = await this.cloudStorage.deleteFile(report.cloudKey);
+                if (!cloudDeleted) {
+                    console.warn('Konnte Cloud-Datei nicht löschen:', report.cloudKey);
+                }
+            }
+
+            // Lokale Datei löschen falls vorhanden
             if (fs.existsSync(report.filePath)) {
                 fs.unlinkSync(report.filePath);
             }
