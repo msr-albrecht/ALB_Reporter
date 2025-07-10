@@ -51,16 +51,24 @@ export class ReportService {
         this.dbManager = new DatabaseManager();
         this.cloudStorage = new CloudStorageService();
 
-        // Ensure output directories exist with proper permissions
-        this.ensureDirectoryExists('./generated_reports/bautagesberichte');
-        this.ensureDirectoryExists('./generated_reports/regieberichte');
+        // OneDrive ist ZWINGEND erforderlich - keine lokalen Ausgabeverzeichnisse mehr
+        if (!this.cloudStorage.isEnabled()) {
+            throw new Error('OneDrive-Konfiguration ist zwingend erforderlich. Bitte überprüfen Sie Ihre .env-Datei und stellen Sie sicher, dass ONEDRIVE_SHARE_URL gesetzt ist.');
+        }
+
+        // Verwende temporäre Verzeichnisse nur für die Dokumentenerstellung
+        const tempDir = '/tmp/berichte_temp';
+        this.ensureDirectoryExists(tempDir + '/bautagesberichte');
+        this.ensureDirectoryExists(tempDir + '/regieberichte');
 
         this.bautagesberichtGenerator = new BautagesberichtGenerator({
-            outputDir: './generated_reports/bautagesberichte'
+            outputDir: tempDir + '/bautagesberichte'
         });
         this.regieGenerator = new RegieGenerator({
-            outputDir: './generated_reports/regieberichte'
+            outputDir: tempDir + '/regieberichte'
         });
+
+        console.log('OneDrive-Integration aktiviert - Alle Berichte werden ausschließlich in OneDrive gespeichert');
     }
 
     private ensureDirectoryExists(dirPath: string): void {
@@ -69,15 +77,7 @@ export class ReportService {
 
             if (!fs.existsSync(fullPath)) {
                 fs.mkdirSync(fullPath, { recursive: true, mode: 0o777 });
-                console.log(`Verzeichnis erstellt: ${fullPath}`);
-            }
-
-            // Set proper permissions on existing directory
-            try {
-                fs.chmodSync(fullPath, 0o777);
-                console.log(`Berechtigungen gesetzt für: ${fullPath}`);
-            } catch (chmodError) {
-                console.warn(`Konnte Berechtigungen nicht setzen für ${fullPath}:`, chmodError);
+                console.log(`Temporäres Verzeichnis erstellt: ${fullPath}`);
             }
 
             // Test write permissions
@@ -85,48 +85,14 @@ export class ReportService {
             try {
                 fs.writeFileSync(testFile, 'test', { mode: 0o666 });
                 fs.unlinkSync(testFile);
-                console.log(`Schreibberechtigung bestätigt für: ${fullPath}`);
+                console.log(`Schreibberechtigung bestätigt für temporäres Verzeichnis: ${fullPath}`);
             } catch (testError) {
                 console.error(`Schreibtest fehlgeschlagen für ${fullPath}:`, testError);
-
-                // Try creating alternative directory in /tmp
-                const tmpDir = path.join('/tmp', 'berichte_reports', path.basename(dirPath));
-                try {
-                    if (!fs.existsSync(tmpDir)) {
-                        fs.mkdirSync(tmpDir, { recursive: true, mode: 0o777 });
-                    }
-                    const tmpTestFile = path.join(tmpDir, '.write_test_' + Date.now());
-                    fs.writeFileSync(tmpTestFile, 'test');
-                    fs.unlinkSync(tmpTestFile);
-                    console.log(`Alternative Verzeichnis erstellt und getestet: ${tmpDir}`);
-
-                    // Update the generators to use the alternative path
-                    if (dirPath.includes('bautagesberichte')) {
-                        this.bautagesberichtGenerator = new BautagesberichtGenerator({
-                            outputDir: tmpDir
-                        });
-                    } else if (dirPath.includes('regieberichte')) {
-                        this.regieGenerator = new RegieGenerator({
-                            outputDir: tmpDir
-                        });
-                    }
-                } catch (tmpError) {
-                    console.error(`Fehler beim Erstellen des alternativen Verzeichnisses:`, tmpError);
-                }
+                throw new Error(`Kann nicht in temporäres Verzeichnis schreiben: ${fullPath}`);
             }
         } catch (error) {
-            console.error(`Fehler beim Erstellen/Testen des Verzeichnisses ${dirPath}:`, error);
-
-            // Last resort: try using current working directory
-            const cwdPath = path.join(process.cwd(), 'temp_reports', path.basename(dirPath));
-            try {
-                if (!fs.existsSync(cwdPath)) {
-                    fs.mkdirSync(cwdPath, { recursive: true, mode: 0o777 });
-                    console.log(`Notfall-Verzeichnis erstellt: ${cwdPath}`);
-                }
-            } catch (cwdError) {
-                console.error(`Fehler beim Erstellen des Notfall-Verzeichnisses:`, cwdError);
-            }
+            console.error(`Fehler beim Erstellen des temporären Verzeichnisses ${dirPath}:`, error);
+            throw error;
         }
     }
 
@@ -136,6 +102,19 @@ export class ReportService {
                 return {
                     success: false,
                     message: 'Kürzel ist ein Pflichtfeld'
+                };
+            }
+
+            // Prüfe OneDrive-Verfügbarkeit VOR der Berichterstellung
+            if (!this.cloudStorage.isEnabled()) {
+                return {
+                    success: false,
+                    message: '❌ OneDrive-Speicherung ist zwingend erforderlich, aber nicht verfügbar!\n\n' +
+                            'Mögliche Ursachen:\n' +
+                            '• ONEDRIVE_SHARE_URL ist nicht in der .env-Datei konfiguriert\n' +
+                            '• OneDrive-Service ist nicht erreichbar\n' +
+                            '• Netzwerkverbindung zu OneDrive fehlgeschlagen\n\n' +
+                            'Bitte überprüfen Sie Ihre OneDrive-Konfiguration und versuchen Sie es erneut.'
                 };
             }
 
@@ -174,49 +153,63 @@ export class ReportService {
                     documentName = 'Bautagesbericht';
             }
 
-            // Dokument lokal generieren
+            // Dokument temporär generieren
+            console.log('Erstelle Dokument temporär für OneDrive-Upload...');
             const { filePath, fileName } = await generator.generateWordDocument(savedReport, request);
 
-            // Versuche Cloud-Upload
-            let finalReportData = {
+            // OneDrive-Upload ist ZWINGEND erforderlich
+            console.log('Uploade Bericht in OneDrive (ZWINGEND erforderlich)...');
+            const uploadResult = await this.cloudStorage.uploadFile(filePath, fileName, request.documentType);
+
+            if (!uploadResult.success) {
+                // Lösche die temporäre Datei
+                if (fs.existsSync(filePath)) {
+                    fs.unlinkSync(filePath);
+                }
+
+                // Lösche den Datenbank-Eintrag wieder
+                await this.dbManager.deleteReport(reportId);
+
+                return {
+                    success: false,
+                    message: `❌ OneDrive-Upload fehlgeschlagen - Bericht konnte nicht gespeichert werden!\n\n` +
+                            `Fehlerdetails: ${uploadResult.error || 'Unbekannter Fehler'}\n\n` +
+                            `Mögliche Lösungen:\n` +
+                            `• Überprüfen Sie Ihre Internetverbindung\n` +
+                            `• Stellen Sie sicher, dass die OneDrive Share-URL korrekt konfiguriert ist\n` +
+                            `• Prüfen Sie die OneDrive-Berechtigungen\n` +
+                            `• Versuchen Sie es in einigen Minuten erneut\n\n` +
+                            `Der Bericht wurde NICHT gespeichert, da OneDrive-Speicherung zwingend erforderlich ist.`
+                };
+            }
+
+            // Lösche die temporäre Datei nach erfolgreichem Upload
+            if (fs.existsSync(filePath)) {
+                fs.unlinkSync(filePath);
+                console.log(`Temporäre Datei gelöscht: ${filePath}`);
+            }
+
+            // Speichere finale Report-Daten mit OneDrive-Informationen
+            const finalReportData = {
                 ...reportData,
                 fileName,
-                filePath,
-                isCloudStored: false
+                filePath: '', // Keine lokale Datei mehr
+                cloudUrl: uploadResult.fileUrl!,
+                cloudKey: uploadResult.localPath || uploadResult.fileUrl!,
+                isCloudStored: true
             };
-
-            if (this.cloudStorage.isEnabled()) {
-                console.log('Uploade Bericht in die Cloud...');
-                const uploadResult = await this.cloudStorage.uploadFile(filePath, fileName, request.documentType);
-
-                if (uploadResult.success && uploadResult.fileUrl) {
-                    finalReportData = {
-                        ...finalReportData,
-                        cloudUrl: uploadResult.fileUrl,
-                        cloudKey: uploadResult.localPath || uploadResult.fileUrl, // Verwende localPath oder fileUrl als cloudKey
-                        isCloudStored: true,
-                        filePath: uploadResult.localPath || filePath // Verwende localPath falls verfügbar
-                    };
-                    console.log('Cloud-Upload erfolgreich:', uploadResult.fileUrl);
-                    if (uploadResult.localPath) {
-                        console.log('Datei in lokalen OneDrive-Ordner kopiert:', uploadResult.localPath);
-                    }
-                } else {
-                    console.warn('Cloud-Upload fehlgeschlagen, verwende lokalen Speicher:', uploadResult.error);
-                }
-            } else {
-                console.log('Cloud-Speicher nicht verfügbar, verwende lokalen Speicher');
-            }
 
             // Report mit finalen Daten speichern
             await this.dbManager.deleteReport(reportId);
             const finalReport = await this.dbManager.saveReport(finalReportData);
 
-            const storageInfo = finalReport.isCloudStored ? 'in der Cloud' : 'lokal';
+            console.log('✅ Bericht erfolgreich in OneDrive gespeichert:', uploadResult.fileUrl);
 
             return {
                 success: true,
-                message: `${documentName} #${finalReport.reportNumber.toString().padStart(4, '0')} wurde erfolgreich erstellt und ${storageInfo} gespeichert`,
+                message: `✅ ${documentName} #${finalReport.reportNumber.toString().padStart(4, '0')} wurde erfolgreich erstellt und in OneDrive gespeichert!\n\n` +
+                        `📁 OneDrive-Link: ${uploadResult.fileUrl}\n` +
+                        `📄 Dateiname: ${fileName}`,
                 reportData: finalReport,
                 downloadUrl: `/api/reports/${finalReport.id}/download`
             };
@@ -224,7 +217,9 @@ export class ReportService {
         } catch (error) {
             return {
                 success: false,
-                message: 'Fehler beim Erstellen des Berichts: ' + (error as Error).message
+                message: `❌ Unerwarteter Fehler beim Erstellen des Berichts!\n\n` +
+                        `Fehlerdetails: ${(error as Error).message}\n\n` +
+                        `Falls dieser Fehler weiterhin auftritt, wenden Sie sich an den Administrator.`
             };
         }
     }

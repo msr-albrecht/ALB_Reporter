@@ -5,8 +5,6 @@ services:
     ports:
       - "4055:80"
     volumes:
-      # Generierte Berichte persistent speichern
-      - ./generated_reports:/app/generated_reports
       # OneDrive Mirror-Ordner für Fallback (optional)
       - ./onedrive_shared:/app/onedrive_shared
       # CSV-Dateien einbinden
@@ -19,7 +17,7 @@ services:
       - NODE_ENV=production
       - DOCKER_ENV=true
       - DB_PATH=/app/db/reports.db
-      # OneDrive wird NUR über Share-URL verwendet (kein lokaler Pfad)
+      # OneDrive ist ZWINGEND erforderlich - keine lokale Speicherung
     restart: unless-stopped
 
 
