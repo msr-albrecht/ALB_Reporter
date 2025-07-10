@@ -10,7 +10,7 @@ services:
       # OneDrive Mirror-Ordner für Fallback
       - ./onedrive_shared:/app/onedrive_shared
       # Echter OneDrive-Ordner mounten
-      - C:/Users/User/OneDrive:/app/OneDrive
+      - ./OneDrive:/app/OneDrive
       # CSV-Dateien einbinden
       - ./arbeiter.csv:/app/arbeiter.csv
       # .env Datei für OneDrive-Konfiguration
