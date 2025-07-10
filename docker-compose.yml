@@ -3,7 +3,7 @@ services:
     build: .
     container_name: alb_reporter_container
     ports:
-      - "4055:80"
+      - "4055:4055"
     volumes:
       # OneDrive Mirror-Ordner für Fallback (optional)
       - ./onedrive_shared:/app/onedrive_shared
@@ -17,6 +17,7 @@ services:
       - NODE_ENV=production
       - DOCKER_ENV=true
       - DB_PATH=/app/db/reports.db
+      - PORT=4055
       # OneDrive ist ZWINGEND erforderlich - keine lokale Speicherung
     restart: unless-stopped
 

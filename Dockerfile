@@ -18,17 +18,18 @@ RUN npm run build
 RUN rm -rf node_modules && npm install --omit=dev && npm cache clean --force
 
 # Erstelle notwendige Verzeichnisse mit korrekten Berechtigungen
-RUN mkdir -p generated_reports/bautagesberichte \
-    && mkdir -p generated_reports/regieberichte \
-    && mkdir -p onedrive_shared \
+RUN mkdir -p onedrive_shared \
     && mkdir -p photos \
     && mkdir -p db \
-    && chown -R node:node /app
+    && mkdir -p /tmp/berichte_temp/bautagesberichte \
+    && mkdir -p /tmp/berichte_temp/regieberichte \
+    && chown -R node:node /app \
+    && chown -R node:node /tmp/berichte_temp
 
-# Wechsle zu non-root user
+# Wechsle zum node User für Sicherheit
 USER node
 
+# Exponiere den korrekten Port für HTTPS
 EXPOSE 4055
 
-
-CMD ["npm", "start"]
+CMD ["node", "dist/server.js"]
