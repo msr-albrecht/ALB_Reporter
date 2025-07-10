@@ -7,10 +7,8 @@ services:
     volumes:
       # Generierte Berichte persistent speichern
       - ./generated_reports:/app/generated_reports
-      # OneDrive Mirror-Ordner für Fallback
+      # OneDrive Mirror-Ordner für Fallback (optional)
       - ./onedrive_shared:/app/onedrive_shared
-      # Echter OneDrive-Ordner mounten
-      - ./OneDrive:/app/OneDrive
       # CSV-Dateien einbinden
       - ./arbeiter.csv:/app/arbeiter.csv
       # .env Datei für OneDrive-Konfiguration
@@ -19,9 +17,9 @@ services:
       - db-data:/app/db
     environment:
       - NODE_ENV=production
+      - DOCKER_ENV=true
       - DB_PATH=/app/db/reports.db
-      # OneDrive-Pfad im Container setzen
-      - ONEDRIVE_LOCAL_PATH=/app/OneDrive
+      # OneDrive wird NUR über Share-URL verwendet (kein lokaler Pfad)
     restart: unless-stopped
 
 

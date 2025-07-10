@@ -46,11 +46,12 @@ export class CloudStorageService {
             return null;
         }
 
-        // Für Docker: Prüfe zuerst die Container-spezifische Umgebungsvariable
-        let localOneDrivePath: string | undefined = process.env.ONEDRIVE_LOCAL_PATH;
+        // Für Docker: Verwende NIEMALS lokale Pfade, nur Share-URL
+        const isDocker = process.env.NODE_ENV === 'production' || process.env.DOCKER_ENV === 'true';
+        let localOneDrivePath: string | undefined;
 
-        // Falls nicht gesetzt, versuche lokale OneDrive-Pfade zu finden (für lokale Entwicklung)
-        if (!localOneDrivePath) {
+        if (!isDocker) {
+            // Nur für lokale Entwicklung: Versuche lokale OneDrive-Pfade zu finden
             const userProfile = process.env.USERPROFILE || process.env.HOME;
 
             if (userProfile) {
@@ -67,12 +68,12 @@ export class CloudStorageService {
                     }
                 }
             }
-        }
 
-        // Prüfe ob der OneDrive-Pfad existiert
-        if (localOneDrivePath && !fs.existsSync(localOneDrivePath)) {
-            console.warn(`OneDrive-Pfad nicht gefunden: ${localOneDrivePath}`);
-            localOneDrivePath = undefined;
+            // Prüfe ob der OneDrive-Pfad existiert (nur für lokale Entwicklung)
+            if (localOneDrivePath && !fs.existsSync(localOneDrivePath)) {
+                console.warn(`OneDrive-Pfad nicht gefunden: ${localOneDrivePath}`);
+                localOneDrivePath = undefined;
+            }
         }
 
         const config: OneDriveStorageConfig = {
@@ -80,11 +81,15 @@ export class CloudStorageService {
             folderPath: process.env.ONEDRIVE_FOLDER_PATH || 'Berichte'
         };
 
-        if (localOneDrivePath) {
+        if (localOneDrivePath && !isDocker) {
             config.localOneDrivePath = localOneDrivePath;
             console.log(`OneDrive lokaler Pfad gefunden: ${localOneDrivePath}`);
         } else {
-            console.warn('Kein lokaler OneDrive-Pfad verfügbar. Nur Share-URL wird verwendet.');
+            if (isDocker) {
+                console.log('Docker-Umgebung erkannt: Verwende nur OneDrive Share-URL (kein lokaler Pfad)');
+            } else {
+                console.warn('Kein lokaler OneDrive-Pfad verfügbar. Nur Share-URL wird verwendet.');
+            }
         }
 
         return config;
