@@ -55,13 +55,17 @@ export declare class ReportService {
     private dbManager;
     private bautagesberichtGenerator;
     private regieGenerator;
+    private cloudStorage;
     constructor();
+    private ensureDirectoryExists;
     createReport(request: CreateReportRequest): Promise<CreateReportResponse>;
     getAllReports(): Promise<GetReportsResponse>;
     getReportById(id: string): Promise<ReportData | null>;
     downloadReport(id: string): Promise<{
-        filePath: string;
+        filePath?: string;
         fileName: string;
+        downloadUrl?: string;
+        isCloudStored?: boolean;
     } | null>;
     deleteReport(id: string): Promise<boolean>;
     close(): void;

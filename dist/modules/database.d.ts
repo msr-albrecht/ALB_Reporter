@@ -7,6 +7,9 @@ export interface ReportData {
     createdAt: string;
     fileName: string;
     filePath: string;
+    cloudUrl?: string;
+    cloudKey?: string;
+    isCloudStored?: boolean;
     arbeitsdatum?: string;
     arbeitszeit?: string;
     zusatzInformationen?: string;
@@ -19,6 +22,7 @@ export declare class DatabaseManager {
     private getTableName;
     private initializeDatabase;
     private createTable;
+    private updateTableSchema;
     getNextReportNumber(kuerzel: string, documentType: string): Promise<number>;
     saveReport(reportData: Omit<ReportData, 'reportNumber'>): Promise<ReportData>;
     getAllReports(): Promise<ReportData[]>;

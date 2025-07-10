@@ -5,9 +5,14 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.DatabaseManager = void 0;
 const sqlite3_1 = __importDefault(require("sqlite3"));
+const path_1 = __importDefault(require("path"));
 class DatabaseManager {
-    constructor(dbPath = './reports.db') {
-        this.dbPath = dbPath;
+    constructor(dbPath) {
+        this.dbPath = dbPath || process.env.DB_PATH || './reports.db';
+        const dbDir = path_1.default.dirname(this.dbPath);
+        if (!require('fs').existsSync(dbDir)) {
+            require('fs').mkdirSync(dbDir, { recursive: true });
+        }
         this.tableNames = new Map();
         this.tableNames.set('bautagesbericht', 'bautagesberichte');
         this.tableNames.set('regiebericht', 'regieberichte');
@@ -29,6 +34,7 @@ class DatabaseManager {
     async initializeDatabase() {
         for (const [documentType, tableName] of this.tableNames) {
             await this.createTable(tableName);
+            await this.updateTableSchema(tableName);
         }
     }
     async createTable(tableName) {
@@ -43,6 +49,9 @@ class DatabaseManager {
                     createdAt TEXT NOT NULL,
                     fileName TEXT NOT NULL,
                     filePath TEXT NOT NULL,
+                    cloudUrl TEXT,
+                    cloudKey TEXT,
+                    isCloudStored BOOLEAN,
                     arbeitsdatum TEXT,
                     arbeitszeit TEXT,
                     zusatzInformationen TEXT,
@@ -57,6 +66,58 @@ class DatabaseManager {
                 else {
                     resolve();
                 }
+            });
+        });
+    }
+    async updateTableSchema(tableName) {
+        return new Promise((resolve, reject) => {
+            this.db.get(`PRAGMA table_info(${tableName})`, (err, rows) => {
+                if (err) {
+                    console.error(`Error checking table schema for ${tableName}:`, err);
+                    reject(err);
+                    return;
+                }
+                this.db.all(`PRAGMA table_info(${tableName})`, (err, columns) => {
+                    if (err) {
+                        console.error(`Error getting column info for ${tableName}:`, err);
+                        reject(err);
+                        return;
+                    }
+                    const columnNames = columns.map(col => col.name);
+                    const alterQueries = [];
+                    if (!columnNames.includes('cloudUrl')) {
+                        alterQueries.push(`ALTER TABLE ${tableName} ADD COLUMN cloudUrl TEXT`);
+                    }
+                    if (!columnNames.includes('cloudKey')) {
+                        alterQueries.push(`ALTER TABLE ${tableName} ADD COLUMN cloudKey TEXT`);
+                    }
+                    if (!columnNames.includes('isCloudStored')) {
+                        alterQueries.push(`ALTER TABLE ${tableName} ADD COLUMN isCloudStored BOOLEAN DEFAULT 0`);
+                    }
+                    if (alterQueries.length > 0) {
+                        console.log(`Updating schema for table ${tableName}...`);
+                        let completed = 0;
+                        const total = alterQueries.length;
+                        alterQueries.forEach(query => {
+                            this.db.run(query, (err) => {
+                                if (err) {
+                                    console.error(`Error altering table ${tableName}:`, err);
+                                    reject(err);
+                                }
+                                else {
+                                    completed++;
+                                    if (completed === total) {
+                                        console.log(`Schema update completed for table ${tableName}`);
+                                        resolve();
+                                    }
+                                }
+                            });
+                        });
+                    }
+                    else {
+                        resolve();
+                    }
+                });
             });
         });
     }
@@ -82,8 +143,8 @@ class DatabaseManager {
         const tableName = this.getTableName(reportData.documentType);
         return new Promise((resolve, reject) => {
             const query = `
-                INSERT INTO ${tableName} (id, documentType, kuerzel, mitarbeiter, reportNumber, createdAt, fileName, filePath, arbeitsdatum, arbeitszeit, zusatzInformationen)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO ${tableName} (id, documentType, kuerzel, mitarbeiter, reportNumber, createdAt, fileName, filePath, cloudUrl, cloudKey, isCloudStored, arbeitsdatum, arbeitszeit, zusatzInformationen)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             `;
             const values = [
                 fullReportData.id,
@@ -94,6 +155,9 @@ class DatabaseManager {
                 fullReportData.createdAt,
                 fullReportData.fileName,
                 fullReportData.filePath,
+                fullReportData.cloudUrl || null,
+                fullReportData.cloudKey || null,
+                fullReportData.isCloudStored ? 1 : 0,
                 fullReportData.arbeitsdatum || null,
                 fullReportData.arbeitszeit || null,
                 fullReportData.zusatzInformationen || null

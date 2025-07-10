@@ -173,14 +173,25 @@ exports.reportRouter.get('/reports/:id/download', async (req, res) => {
         if (id) {
             const downloadInfo = await reportService.downloadReport(id);
             if (downloadInfo) {
-                res.download(downloadInfo.filePath, downloadInfo.fileName, (err) => {
-                    if (err) {
-                        res.status(500).json({
-                            success: false,
-                            message: 'Fehler beim Download der Datei'
-                        });
-                    }
-                });
+                if (downloadInfo.isCloudStored && downloadInfo.downloadUrl) {
+                    res.redirect(downloadInfo.downloadUrl);
+                }
+                else if (downloadInfo.filePath) {
+                    res.download(downloadInfo.filePath, downloadInfo.fileName, (err) => {
+                        if (err) {
+                            res.status(500).json({
+                                success: false,
+                                message: 'Fehler beim Download der Datei'
+                            });
+                        }
+                    });
+                }
+                else {
+                    res.status(404).json({
+                        success: false,
+                        message: 'Datei nicht verfügbar'
+                    });
+                }
             }
             else {
                 res.status(404).json({
