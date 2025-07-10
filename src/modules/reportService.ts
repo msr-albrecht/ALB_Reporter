@@ -65,28 +65,67 @@ export class ReportService {
 
     private ensureDirectoryExists(dirPath: string): void {
         try {
-            if (!fs.existsSync(dirPath)) {
-                fs.mkdirSync(dirPath, { recursive: true, mode: 0o755 });
-                console.log(`Verzeichnis erstellt: ${dirPath}`);
+            const fullPath = path.resolve(dirPath);
+
+            if (!fs.existsSync(fullPath)) {
+                fs.mkdirSync(fullPath, { recursive: true, mode: 0o777 });
+                console.log(`Verzeichnis erstellt: ${fullPath}`);
+            }
+
+            // Set proper permissions on existing directory
+            try {
+                fs.chmodSync(fullPath, 0o777);
+                console.log(`Berechtigungen gesetzt für: ${fullPath}`);
+            } catch (chmodError) {
+                console.warn(`Konnte Berechtigungen nicht setzen für ${fullPath}:`, chmodError);
             }
 
             // Test write permissions
-            const testFile = path.join(dirPath, '.write_test');
-            fs.writeFileSync(testFile, 'test');
-            fs.unlinkSync(testFile);
-            console.log(`Schreibberechtigung bestätigt für: ${dirPath}`);
+            const testFile = path.join(fullPath, '.write_test_' + Date.now());
+            try {
+                fs.writeFileSync(testFile, 'test', { mode: 0o666 });
+                fs.unlinkSync(testFile);
+                console.log(`Schreibberechtigung bestätigt für: ${fullPath}`);
+            } catch (testError) {
+                console.error(`Schreibtest fehlgeschlagen für ${fullPath}:`, testError);
+
+                // Try creating alternative directory in /tmp
+                const tmpDir = path.join('/tmp', 'berichte_reports', path.basename(dirPath));
+                try {
+                    if (!fs.existsSync(tmpDir)) {
+                        fs.mkdirSync(tmpDir, { recursive: true, mode: 0o777 });
+                    }
+                    const tmpTestFile = path.join(tmpDir, '.write_test_' + Date.now());
+                    fs.writeFileSync(tmpTestFile, 'test');
+                    fs.unlinkSync(tmpTestFile);
+                    console.log(`Alternative Verzeichnis erstellt und getestet: ${tmpDir}`);
+
+                    // Update the generators to use the alternative path
+                    if (dirPath.includes('bautagesberichte')) {
+                        this.bautagesberichtGenerator = new BautagesberichtGenerator({
+                            outputDir: tmpDir
+                        });
+                    } else if (dirPath.includes('regieberichte')) {
+                        this.regieGenerator = new RegieGenerator({
+                            outputDir: tmpDir
+                        });
+                    }
+                } catch (tmpError) {
+                    console.error(`Fehler beim Erstellen des alternativen Verzeichnisses:`, tmpError);
+                }
+            }
         } catch (error) {
             console.error(`Fehler beim Erstellen/Testen des Verzeichnisses ${dirPath}:`, error);
 
-            // Try alternative approach - create in current working directory
-            const alternativePath = path.join(process.cwd(), dirPath);
+            // Last resort: try using current working directory
+            const cwdPath = path.join(process.cwd(), 'temp_reports', path.basename(dirPath));
             try {
-                if (!fs.existsSync(alternativePath)) {
-                    fs.mkdirSync(alternativePath, { recursive: true, mode: 0o755 });
-                    console.log(`Alternatives Verzeichnis erstellt: ${alternativePath}`);
+                if (!fs.existsSync(cwdPath)) {
+                    fs.mkdirSync(cwdPath, { recursive: true, mode: 0o777 });
+                    console.log(`Notfall-Verzeichnis erstellt: ${cwdPath}`);
                 }
-            } catch (altError) {
-                console.error(`Fehler beim Erstellen des alternativen Verzeichnisses:`, altError);
+            } catch (cwdError) {
+                console.error(`Fehler beim Erstellen des Notfall-Verzeichnisses:`, cwdError);
             }
         }
     }
