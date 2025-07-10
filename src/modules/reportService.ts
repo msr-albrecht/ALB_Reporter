@@ -50,12 +50,45 @@ export class ReportService {
     constructor() {
         this.dbManager = new DatabaseManager();
         this.cloudStorage = new CloudStorageService();
+
+        // Ensure output directories exist with proper permissions
+        this.ensureDirectoryExists('./generated_reports/bautagesberichte');
+        this.ensureDirectoryExists('./generated_reports/regieberichte');
+
         this.bautagesberichtGenerator = new BautagesberichtGenerator({
             outputDir: './generated_reports/bautagesberichte'
         });
         this.regieGenerator = new RegieGenerator({
             outputDir: './generated_reports/regieberichte'
         });
+    }
+
+    private ensureDirectoryExists(dirPath: string): void {
+        try {
+            if (!fs.existsSync(dirPath)) {
+                fs.mkdirSync(dirPath, { recursive: true, mode: 0o755 });
+                console.log(`Verzeichnis erstellt: ${dirPath}`);
+            }
+
+            // Test write permissions
+            const testFile = path.join(dirPath, '.write_test');
+            fs.writeFileSync(testFile, 'test');
+            fs.unlinkSync(testFile);
+            console.log(`Schreibberechtigung bestätigt für: ${dirPath}`);
+        } catch (error) {
+            console.error(`Fehler beim Erstellen/Testen des Verzeichnisses ${dirPath}:`, error);
+
+            // Try alternative approach - create in current working directory
+            const alternativePath = path.join(process.cwd(), dirPath);
+            try {
+                if (!fs.existsSync(alternativePath)) {
+                    fs.mkdirSync(alternativePath, { recursive: true, mode: 0o755 });
+                    console.log(`Alternatives Verzeichnis erstellt: ${alternativePath}`);
+                }
+            } catch (altError) {
+                console.error(`Fehler beim Erstellen des alternativen Verzeichnisses:`, altError);
+            }
+        }
     }
 
     async createReport(request: CreateReportRequest): Promise<CreateReportResponse> {

@@ -175,13 +175,13 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Show material section for regiebericht and regieantrag
         if (documentType === 'regiebericht' || documentType === 'regieantrag') {
-            materialSection.style.display = 'block';
-            regieTextFields.style.display = 'block';
-            zusatzInformationenSection.style.display = 'none';
+            if (materialSection) materialSection.style.display = 'block';
+            if (regieTextFields) regieTextFields.style.display = 'block';
+            if (zusatzInformationenSection) zusatzInformationenSection.style.display = 'none';
         } else {
-            materialSection.style.display = 'none';
-            regieTextFields.style.display = 'none';
-            zusatzInformationenSection.style.display = 'none'; // Hide for bautagesbericht
+            if (materialSection) materialSection.style.display = 'none';
+            if (regieTextFields) regieTextFields.style.display = 'none';
+            if (zusatzInformationenSection) zusatzInformationenSection.style.display = 'none'; // Hide for bautagesbericht
         }
 
         // Update date input behavior for all selected employees
