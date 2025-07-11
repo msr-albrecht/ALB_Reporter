@@ -1,0 +1,37 @@
+{
+  "name": "berichte-file-server",
+  "version": "1.0.0",
+  "description": "Eigenständiger Node.js File-Server für Berichte-Anwendung",
+  "main": "server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js",
+    "init": "node init.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "multer": "^1.4.5-lts.1",
+    "cors": "^2.8.5",
+    "helmet": "^7.0.0",
+    "express-rate-limit": "^6.7.0",
+    "uuid": "^9.0.0",
+    "fs-extra": "^11.1.1",
+    "mime-types": "^2.1.35",
+    "morgan": "^1.10.0",
+    "dotenv": "^16.3.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  },
+  "keywords": [
+    "file-server",
+    "express",
+    "upload",
+    "download",
+    "documents"
+  ],
+  "author": "Berichte Generator",
+  "license": "MIT"
+}
+

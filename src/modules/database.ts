@@ -11,10 +11,8 @@ export interface ReportData {
     createdAt: string;
     fileName: string;
     filePath: string;
-    // Cloud Storage Felder hinzufügen
-    cloudUrl?: string;
-    cloudKey?: string;
-    isCloudStored?: boolean;
+    // Lokaler Dateiserver Felder
+    fileUrl?: string;
     arbeitsdatum?: string;
     arbeitszeit?: string;
     zusatzInformationen?: string;
@@ -78,9 +76,7 @@ export class DatabaseManager {
                     createdAt TEXT NOT NULL,
                     fileName TEXT NOT NULL,
                     filePath TEXT NOT NULL,
-                    cloudUrl TEXT,
-                    cloudKey TEXT,
-                    isCloudStored BOOLEAN,
+                    fileUrl TEXT,
                     arbeitsdatum TEXT,
                     arbeitszeit TEXT,
                     zusatzInformationen TEXT,
@@ -121,14 +117,8 @@ export class DatabaseManager {
                     const alterQueries: string[] = [];
 
                     // Prüfe und füge fehlende Spalten hinzu
-                    if (!columnNames.includes('cloudUrl')) {
-                        alterQueries.push(`ALTER TABLE ${tableName} ADD COLUMN cloudUrl TEXT`);
-                    }
-                    if (!columnNames.includes('cloudKey')) {
-                        alterQueries.push(`ALTER TABLE ${tableName} ADD COLUMN cloudKey TEXT`);
-                    }
-                    if (!columnNames.includes('isCloudStored')) {
-                        alterQueries.push(`ALTER TABLE ${tableName} ADD COLUMN isCloudStored BOOLEAN DEFAULT 0`);
+                    if (!columnNames.includes('fileUrl')) {
+                        alterQueries.push(`ALTER TABLE ${tableName} ADD COLUMN fileUrl TEXT`);
                     }
 
                     // Führe alle ALTER TABLE Befehle aus
@@ -182,8 +172,8 @@ export class DatabaseManager {
 
         return new Promise((resolve, reject) => {
             const query = `
-                INSERT INTO ${tableName} (id, documentType, kuerzel, mitarbeiter, reportNumber, createdAt, fileName, filePath, cloudUrl, cloudKey, isCloudStored, arbeitsdatum, arbeitszeit, zusatzInformationen)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO ${tableName} (id, documentType, kuerzel, mitarbeiter, reportNumber, createdAt, fileName, filePath, fileUrl, arbeitsdatum, arbeitszeit, zusatzInformationen)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             `;
 
             const values = [
@@ -195,9 +185,7 @@ export class DatabaseManager {
                 fullReportData.createdAt,
                 fullReportData.fileName,
                 fullReportData.filePath,
-                fullReportData.cloudUrl || null,
-                fullReportData.cloudKey || null,
-                fullReportData.isCloudStored ? 1 : 0,
+                fullReportData.fileUrl || null,
                 fullReportData.arbeitsdatum || null,
                 fullReportData.arbeitszeit || null,
                 fullReportData.zusatzInformationen || null

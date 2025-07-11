@@ -1,26 +1,69 @@
 services:
+  # Hauptprogramm (Berichte-Generator)
   app:
     build: .
     container_name: alb_reporter_container
     ports:
       - "4055:4055"
     volumes:
-      # OneDrive Mirror-Ordner für Fallback (optional)
-      - ./onedrive_shared:/app/onedrive_shared
       # CSV-Dateien einbinden
       - ./arbeiter.csv:/app/arbeiter.csv
-      # .env Datei für OneDrive-Konfiguration
+      # .env Datei für Server-Konfiguration
       - ./.env:/app/.env
-      # Datenbank in named volume speichern (nicht als Datei-Mapping)
+      # Datenbank persistent speichern
       - db-data:/app/db
+      # SSL-Zertifikate persistent speichern
+      - ssl-data:/app/ssl
     environment:
       - NODE_ENV=production
       - DOCKER_ENV=true
       - DB_PATH=/app/db/reports.db
       - PORT=4055
-      # OneDrive ist ZWINGEND erforderlich - keine lokale Speicherung
+      # File-Server URL für Container-zu-Container Kommunikation
+      - FILE_SERVER_URL=http://file-server:3003
+      # Server-URL für externen Zugriff
+      - SERVER_URL=https://localhost:4055
+    depends_on:
+      - file-server
+    networks:
+      - berichte-network
     restart: unless-stopped
 
+  # File-Server (eigenständiger Datei-Server)
+  file-server:
+    build: ./file-server
+    container_name: berichte_file_server
+    ports:
+      - "3003:3003"
+    volumes:
+      # File-Server .env
+      - ./file-server/.env:/app/.env
+      # Storage persistent speichern
+      - file-storage:/app/storage
+    environment:
+      - NODE_ENV=production
+      - FILE_SERVER_PORT=3003
+      - FILE_SERVER_HOST=0.0.0.0
+      # URL für externen Zugriff (wichtig für Download-Links)
+      - FILE_SERVER_URL=http://localhost:3003
+      - STORAGE_BASE_DIR=/app/storage
+      # Erlaube Zugriff vom Hauptprogramm
+      - ALLOWED_ORIGINS=http://app:4055,https://app:4055,http://localhost:4055,https://localhost:4055
+    networks:
+      - berichte-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "node", "-e", "const http = require('http'); const options = { hostname: 'localhost', port: 3003, path: '/health', method: 'GET' }; const req = http.request(options, (res) => { process.exit(res.statusCode === 200 ? 0 : 1); }); req.on('error', () => process.exit(1)); req.end();"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+networks:
+  berichte-network:
+    driver: bridge
 
 volumes:
   db-data:
+  ssl-data:
+  file-storage:

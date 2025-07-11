@@ -176,11 +176,11 @@ reportRouter.get('/reports/:id/download', async (req: Request, res: Response) =>
         if (id) {
             const downloadInfo = await reportService.downloadReport(id);
             if (downloadInfo) {
-                // Wenn Cloud-gespeichert, leite zur Cloud-URL weiter
-                if (downloadInfo.isCloudStored && downloadInfo.downloadUrl) {
+                // Wenn Download-URL vorhanden, leite zur File-Server-URL weiter
+                if (downloadInfo.downloadUrl) {
                     res.redirect(downloadInfo.downloadUrl);
                 } else if (downloadInfo.filePath) {
-                    // Lokale Datei herunterladen
+                    // Lokale Datei herunterladen (Fallback)
                     res.download(downloadInfo.filePath, downloadInfo.fileName, (err) => {
                         if (err) {
                             res.status(500).json({

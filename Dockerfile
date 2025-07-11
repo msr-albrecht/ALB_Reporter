@@ -18,13 +18,14 @@ RUN npm run build
 RUN rm -rf node_modules && npm install --omit=dev && npm cache clean --force
 
 # Erstelle notwendige Verzeichnisse mit korrekten Berechtigungen
-RUN mkdir -p onedrive_shared \
-    && mkdir -p photos \
+RUN mkdir -p photos \
     && mkdir -p db \
+    && mkdir -p files \
     && mkdir -p /tmp/berichte_temp/bautagesberichte \
     && mkdir -p /tmp/berichte_temp/regieberichte \
-    && chown -R node:node /app \
-    && chown -R node:node /tmp/berichte_temp
+    && chmod -R 777 files \
+    && chmod -R 777 /tmp/berichte_temp \
+    && chown -R node:node /app
 
 # Wechsle zum node User für Sicherheit
 USER node

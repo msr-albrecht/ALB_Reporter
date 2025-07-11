@@ -1,0 +1,7 @@
+Dies ist eine Test-Datei für den File-Server.
+
+Erstellt am: 2025-07-10
+Server: Berichte File-Server
+Port: 3003
+
+Diese Datei wird verwendet, um den Upload- und Download-Funktionalität zu testen.

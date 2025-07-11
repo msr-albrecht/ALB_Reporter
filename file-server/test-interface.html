@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>File-Server Test Interface</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background-color: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+        .status {
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+        }
+        .status.success {
+            background-color: #d4edda;
+            border-color: #c3e6cb;
+            color: #155724;
+        }
+        .status.error {
+            background-color: #f8d7da;
+            border-color: #f5c6cb;
+            color: #721c24;
+        }
+        .upload-form {
+            margin: 20px 0;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            background-color: #fafafa;
+        }
+        .form-group {
+            margin: 15px 0;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input, select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .test-buttons {
+            display: flex;
+            gap: 10px;
+            margin: 20px 0;
+        }
+        .test-buttons button {
+            flex: 1;
+            background-color: #28a745;
+        }
+        .test-buttons button:hover {
+            background-color: #1e7e34;
+        }
+        .result {
+            margin: 20px 0;
+            padding: 15px;
+            border-radius: 5px;
+            white-space: pre-wrap;
+            font-family: monospace;
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🗂️ File-Server Test Interface</h1>
+
+        <div id="serverStatus" class="status">
+            <strong>Server-Status:</strong> <span id="statusText">Prüfe...</span>
+        </div>
+
+        <div class="test-buttons">
+            <button onclick="checkHealth()">🔍 Health Check</button>
+            <button onclick="getServerInfo()">ℹ️ Server Info</button>
+            <button onclick="listFiles()">📁 Dateien auflisten</button>
+        </div>
+
+        <div class="upload-form">
+            <h3>📤 Datei hochladen</h3>
+            <form id="uploadForm" onsubmit="uploadFile(event)">
+                <div class="form-group">
+                    <label for="fileInput">Datei wählen:</label>
+                    <input type="file" id="fileInput" name="files" multiple accept=".docx,.doc,.pdf,.jpg,.png,.gif,.txt,.zip" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="documentType">Dokumenttyp:</label>
+                    <select id="documentType" name="documentType">
+                        <option value="document">Allgemeines Dokument</option>
+                        <option value="bautagesbericht">Bautagesbericht</option>
+                        <option value="regiebericht">Regiebericht</option>
+                        <option value="regieantrag">Regieantrag</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="kuerzel">Kürzel:</label>
+                    <input type="text" id="kuerzel" name="kuerzel" value="TEST" placeholder="z.B. ABC, XYZ">
+                </div>
+
+                <button type="submit">📤 Hochladen</button>
+            </form>
+        </div>
+
+        <div id="result" class="result" style="display:none;"></div>
+    </div>
+
+    <script>
+        const FILE_SERVER_URL = 'http://localhost:3003';
+
+        // Server-Status beim Laden prüfen
+        window.onload = function() {
+            checkHealth();
+        };
+
+        async function checkHealth() {
+            try {
+                const response = await fetch(`${FILE_SERVER_URL}/health`);
+                const data = await response.json();
+
+                const statusDiv = document.getElementById('serverStatus');
+                const statusText = document.getElementById('statusText');
+
+                if (data.status === 'OK') {
+                    statusDiv.className = 'status success';
+                    statusText.textContent = `✅ Server läuft (Port: ${data.port}, Uptime: ${data.uptime}s)`;
+                } else {
+                    statusDiv.className = 'status error';
+                    statusText.textContent = '❌ Server antwortet nicht korrekt';
+                }
+
+                showResult('Health Check:', JSON.stringify(data, null, 2));
+            } catch (error) {
+                const statusDiv = document.getElementById('serverStatus');
+                const statusText = document.getElementById('statusText');
+                statusDiv.className = 'status error';
+                statusText.textContent = '❌ Server nicht erreichbar';
+                showResult('Health Check Fehler:', error.message);
+            }
+        }
+
+        async function getServerInfo() {
+            try {
+                const response = await fetch(`${FILE_SERVER_URL}/api/info`);
+                const data = await response.json();
+                showResult('Server Info:', JSON.stringify(data, null, 2));
+            } catch (error) {
+                showResult('Server Info Fehler:', error.message);
+            }
+        }
+
+        async function listFiles() {
+            try {
+                const response = await fetch(`${FILE_SERVER_URL}/api/files/berichte`);
+                const data = await response.json();
+                showResult('Datei-Listing:', JSON.stringify(data, null, 2));
+            } catch (error) {
+                showResult('Datei-Listing Fehler:', error.message);
+            }
+        }
+
+        async function uploadFile(event) {
+            event.preventDefault();
+
+            const formData = new FormData();
+            const fileInput = document.getElementById('fileInput');
+            const documentType = document.getElementById('documentType').value;
+            const kuerzel = document.getElementById('kuerzel').value;
+
+            // Dateien hinzufügen
+            for (let i = 0; i < fileInput.files.length; i++) {
+                formData.append('files', fileInput.files[i]);
+            }
+
+            formData.append('documentType', documentType);
+            formData.append('kuerzel', kuerzel);
+
+            try {
+                showResult('Upload läuft...', 'Bitte warten...');
+
+                const response = await fetch(`${FILE_SERVER_URL}/api/upload`, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showResult('✅ Upload erfolgreich:', JSON.stringify(data, null, 2));
+                } else {
+                    showResult('❌ Upload fehlgeschlagen:', JSON.stringify(data, null, 2));
+                }
+            } catch (error) {
+                showResult('❌ Upload Fehler:', error.message);
+            }
+        }
+
+        function showResult(title, content) {
+            const resultDiv = document.getElementById('result');
+            resultDiv.style.display = 'block';
+            resultDiv.textContent = `${title}\n\n${content}`;
+            resultDiv.scrollIntoView({ behavior: 'smooth' });
+        }
+    </script>
+</body>
+</html>
+

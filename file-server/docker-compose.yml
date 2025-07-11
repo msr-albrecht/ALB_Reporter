@@ -1,0 +1,30 @@
+version: '3.8'
+
+services:
+  file-server:
+    build: .
+    container_name: berichte_file_server
+    ports:
+      - "3002:3002"
+    volumes:
+      # Storage-Dateien persistent speichern
+      - file-storage:/app/storage
+      # Umgebungsvariablen
+      - ./.env:/app/.env
+    environment:
+      - NODE_ENV=production
+      - FILE_SERVER_PORT=3002
+      - FILE_SERVER_HOST=0.0.0.0
+      - FILE_SERVER_URL=http://localhost:3002
+      - STORAGE_BASE_DIR=/app/storage
+      - ALLOWED_ORIGINS=http://localhost:4055,https://localhost:4055
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "node", "-e", "const http = require('http'); const options = { hostname: 'localhost', port: 3002, path: '/health', method: 'GET' }; const req = http.request(options, (res) => { process.exit(res.statusCode === 200 ? 0 : 1); }); req.on('error', () => process.exit(1)); req.end();"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+volumes:
+  file-storage:

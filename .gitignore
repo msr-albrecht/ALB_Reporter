@@ -1,11 +1,34 @@
-/tmp
-/out-tsc
-/dist
-/node_modules
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-/.pnp
-.pnp.js
+# Dependencies
+node_modules/
+package-lock.json
 
-.vscode/*
+# Build artifacts
+dist/
+out-tsc/
+
+# Logs
+*.log
+
+# Environment files
+.env
+
+# Database
+*.db
+
+# Temporary files
+/tmp/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# SSL certificates (keep structure but ignore content)
+ssl/*.pem
+
+# Storage (keep structure but ignore uploaded files)
+file-server/storage/*
+!file-server/storage/.gitkeep
