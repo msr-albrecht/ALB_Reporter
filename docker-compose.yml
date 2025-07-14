@@ -8,7 +8,7 @@ services:
       - ./arbeiter.csv:/app/arbeiter.csv
       - ./.env:/app/.env
       - db-data:/app/db
-      - ssl-data:/app/ssl  # <== Hier liegt der Fehler / Volume für SSL-Zertifikate
+      - ssl-data:/app/ssl
     environment:
       - NODE_ENV=production
       - DOCKER_ENV=true
@@ -21,3 +21,18 @@ services:
     networks:
       - berichte-network
     restart: unless-stopped
+
+  file-server:
+    image: your-file-server-image
+    ports:
+      - "3003:3003"
+    networks:
+      - berichte-network
+
+volumes:
+  db-data:
+  ssl-data:
+
+networks:
+  berichte-network:
+    driver: bridge
