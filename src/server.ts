@@ -146,7 +146,7 @@ try {
 
 // Starte HTTPS Server
 if (httpsOptions) {
-    https.createServer(httpsOptions, app).listen(PORT, () => {
+    https.createServer(httpsOptions, app).listen(80, () => {
         const serverUrl = process.env.SERVER_URL || `https://localhost:${PORT}`;
         console.log(`🔒 HTTPS Server läuft auf Port ${PORT}`);
         console.log(`🌐 Öffentliche URL: ${serverUrl}`);
