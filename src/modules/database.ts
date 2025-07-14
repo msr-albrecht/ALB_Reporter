@@ -282,12 +282,30 @@ export class DatabaseManager {
         });
     }
 
-
     close(): void {
-        this.db.close((err) => {
-            if (err) {
-                console.error('Error closing database:', err);
-            }
+        this.db.close();
+    }
+
+    async clearAllReports(): Promise<{ deletedCount: number }> {
+        return new Promise((resolve, reject) => {
+            this.db.get('SELECT COUNT(*) as count FROM reports', (err, row: any) => {
+                if (err) {
+                    reject(err);
+                    return;
+                }
+
+                const deletedCount = row.count;
+
+                this.db.run('DELETE FROM reports', (err) => {
+                    if (err) {
+                        reject(err);
+                        return;
+                    }
+
+                    console.log(`🗑️ Datenbank geleert: ${deletedCount} Berichte entfernt`);
+                    resolve({ deletedCount });
+                });
+            });
         });
     }
 }

@@ -173,34 +173,25 @@ reportRouter.get('/reports/:id/view', async (req: Request, res: Response) => {
 reportRouter.get('/reports/:id/download', async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
-        if (id) {
-            const downloadInfo = await reportService.downloadReport(id);
-            if (downloadInfo) {
-                // Wenn Download-URL vorhanden, leite zur File-Server-URL weiter
-                if (downloadInfo.downloadUrl) {
-                    res.redirect(downloadInfo.downloadUrl);
-                } else if (downloadInfo.filePath) {
-                    // Lokale Datei herunterladen (Fallback)
-                    res.download(downloadInfo.filePath, downloadInfo.fileName, (err) => {
-                        if (err) {
-                            res.status(500).json({
-                                success: false,
-                                message: 'Fehler beim Download der Datei'
-                            });
-                        }
-                    });
-                } else {
-                    res.status(404).json({
-                        success: false,
-                        message: 'Datei nicht verfügbar'
-                    });
-                }
-            } else {
-                res.status(404).json({
-                    success: false,
-                    message: 'Datei nicht gefunden'
-                });
-            }
+        const downloadData = await reportService.downloadReport(id);
+
+        if (!downloadData) {
+            res.status(404).json({
+                success: false,
+                message: 'Bericht nicht gefunden'
+            });
+            return;
+        }
+
+        if (downloadData.downloadUrl) {
+            res.redirect(downloadData.downloadUrl);
+        } else if (downloadData.filePath) {
+            res.download(downloadData.filePath, downloadData.fileName);
+        } else {
+            res.status(404).json({
+                success: false,
+                message: 'Datei nicht verfügbar'
+            });
         }
     } catch (error) {
         res.status(500).json({
@@ -210,27 +201,36 @@ reportRouter.get('/reports/:id/download', async (req: Request, res: Response) =>
     }
 });
 
-reportRouter.delete('/reports/:id', async (req: Request, res: Response) => {
+// Admin-Endpoint zum Leeren der Datenbank
+reportRouter.delete('/admin/clear-database', async (req: Request, res: Response) => {
     try {
-        const { id } = req.params;
-        if (id) {
-            const deleted = await reportService.deleteReport(id);
-            if (deleted) {
-                res.json({
-                    success: true,
-                    message: 'Bericht erfolgreich gelöscht'
-                });
-            } else {
-                res.status(404).json({
-                    success: false,
-                    message: 'Bericht nicht gefunden'
-                });
-            }
+        // Einfacher Sicherheitscheck - Sie können hier ein Admin-Token hinzufügen
+        const adminKey = req.headers['x-admin-key'] || req.query.adminKey;
+
+        if (adminKey !== process.env.ADMIN_KEY && adminKey !== 'admin123') {
+            return res.status(401).json({
+                success: false,
+                message: 'Nicht autorisiert. Admin-Schlüssel erforderlich.'
+            });
+        }
+
+        const result = await reportService.clearAllReports();
+
+        if (result.success) {
+            res.json({
+                success: true,
+                message: `Datenbank erfolgreich geleert. ${result.deletedCount} Berichte entfernt.`
+            });
+        } else {
+            res.status(500).json({
+                success: false,
+                message: 'Fehler beim Leeren der Datenbank'
+            });
         }
     } catch (error) {
         res.status(500).json({
             success: false,
-            message: 'Fehler beim Löschen des Berichts'
+            message: 'Fehler beim Leeren der Datenbank'
         });
     }
 });

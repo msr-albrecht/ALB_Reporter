@@ -220,7 +220,8 @@ app.post('/api/upload', upload.array('files', 10), async (req, res) => {
 
                 // Download-URL erstellen
                 const relativePath = path.join(storagePath, fileName).replace(/\\/g, '/');
-                const serverUrl = process.env.FILE_SERVER_URL || `http://localhost:${PORT}`;
+                // Verwende PUBLIC_FILE_SERVER_URL für externe Downloads, fallback auf FILE_SERVER_URL
+                const serverUrl = process.env.PUBLIC_FILE_SERVER_URL || process.env.FILE_SERVER_URL || `http://localhost:${PORT}`;
                 const downloadUrl = `${serverUrl}/files/${relativePath}`;
 
                 const fileInfo = {

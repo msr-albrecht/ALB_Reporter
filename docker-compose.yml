@@ -15,7 +15,9 @@ services:
       - DB_PATH=/app/db/reports.db
       - PORT=4055
       - FILE_SERVER_URL=http://file-server:3003
-      - SERVER_URL=https://localhost:4055
+      - PUBLIC_FILE_SERVER_URL=https://139.162.154.60:3003
+      - SERVER_URL=https://139.162.154.60:4055
+      - ADMIN_KEY=admin123
     depends_on:
       - file-server
     networks:
@@ -24,14 +26,26 @@ services:
 
   file-server:
     build: ./file-server
+    container_name: alb_file_server_container
     ports:
       - "3003:3003"
+    volumes:
+      - file-data:/app/storage
+      - ./.env:/app/.env
+    environment:
+      - NODE_ENV=production
+      - FILE_SERVER_PORT=3003
+      - FILE_SERVER_HOST=0.0.0.0
+      - PUBLIC_FILE_SERVER_URL=https://139.162.154.60:3003
+      - STORAGE_BASE_DIR=/app/storage
     networks:
       - berichte-network
+    restart: unless-stopped
 
 volumes:
   db-data:
   ssl-data:
+  file-data:
 
 networks:
   berichte-network:

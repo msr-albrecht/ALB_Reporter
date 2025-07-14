@@ -207,6 +207,21 @@ export class ReportService {
         }
     }
 
+    async clearAllReports(): Promise<{ success: boolean; deletedCount?: number }> {
+        try {
+            const result = await this.dbManager.clearAllReports();
+            return {
+                success: true,
+                deletedCount: result.deletedCount
+            };
+        } catch (error) {
+            console.error('Fehler beim Leeren der Datenbank:', error);
+            return {
+                success: false
+            };
+        }
+    }
+
     async deleteReport(id: string): Promise<boolean> {
         try {
             const report = await this.dbManager.getReportById(id);
