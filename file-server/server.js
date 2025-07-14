@@ -84,7 +84,8 @@ app.use(cors({
         ['http://localhost:4055', 'https://localhost:4055', 'http://localhost:3000'],
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'
+    ]
 }));
 
 // Rate Limiting
@@ -495,18 +496,26 @@ app.use('*', (req, res) => {
     });
 });
 
-// Server starten
-const sslOptions = createSelfSignedCertificate();
+// Server starten - Dual-Mode: HTTP intern, HTTPS extern
+const httpPort = 3002; // Interne HTTP-Kommunikation
+const httpsPort = PORT; // Externe HTTPS-Kommunikation
 
-https.createServer(sslOptions, app).listen(PORT, HOST, () => {
-    const serverUrl = process.env.FILE_SERVER_URL || `http://${HOST}:${PORT}`;
+// HTTP Server für interne Container-Kommunikation
+app.listen(httpPort, HOST, () => {
+    console.log(`🔓 HTTP Server (intern) läuft auf Port ${httpPort}`);
+});
+
+// HTTPS Server für externe Zugriffe
+const sslOptions = createSelfSignedCertificate();
+https.createServer(sslOptions, app).listen(httpsPort, HOST, () => {
+    const serverUrl = process.env.PUBLIC_FILE_SERVER_URL || `https://${HOST}:${httpsPort}`;
     console.log('');
     console.log('🚀 ===============================================');
     console.log('🗂️  BERICHTE FILE SERVER GESTARTET');
     console.log('🚀 ===============================================');
-    console.log(`🌐 Server-URL: ${serverUrl}`);
+    console.log(`🔒 HTTPS Server (extern) läuft auf Port ${httpsPort}`);
+    console.log(`🔓 HTTP Server (intern) läuft auf Port ${httpPort}`);
     console.log(`🏠 Host: ${HOST}`);
-    console.log(`🔌 Port: ${PORT}`);
     console.log(`📁 Storage: ${STORAGE_BASE_DIR}`);
     console.log(`🔗 Health Check: ${serverUrl}/health`);
     console.log(`📊 Info: ${serverUrl}/api/info`);
