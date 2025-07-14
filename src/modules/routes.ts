@@ -170,9 +170,18 @@ reportRouter.get('/reports/:id/view', async (req: Request, res: Response) => {
     }
 });
 
-reportRouter.get('/reports/:id/download', async (req: Request, res: Response) => {
+reportRouter.get('/reports/:id/download', async (req: Request, res: Response): Promise<void> => {
     try {
         const { id } = req.params;
+
+        if (!id) {
+            res.status(400).json({
+                success: false,
+                message: 'Bericht-ID ist erforderlich'
+            });
+            return;
+        }
+
         const downloadData = await reportService.downloadReport(id);
 
         if (!downloadData) {
@@ -205,9 +214,11 @@ reportRouter.get('/reports/:id/download', async (req: Request, res: Response) =>
 reportRouter.delete('/admin/clear-database', async (req: Request, res: Response) => {
     try {
         // Einfacher Sicherheitscheck - Sie können hier ein Admin-Token hinzufügen
-        const adminKey = req.headers['x-admin-key'] || req.query.adminKey;
+        const headerKey = req.headers['x-admin-key'];
+        const queryKey = req.query.adminKey;
+        const adminKey = typeof headerKey === 'string' ? headerKey : typeof queryKey === 'string' ? queryKey : '';
 
-        if (adminKey !== process.env.ADMIN_KEY && adminKey !== 'admin123') {
+        if (!adminKey || (adminKey !== process.env.ADMIN_KEY && adminKey !== 'admin123')) {
             return res.status(401).json({
                 success: false,
                 message: 'Nicht autorisiert. Admin-Schlüssel erforderlich.'
@@ -217,18 +228,18 @@ reportRouter.delete('/admin/clear-database', async (req: Request, res: Response)
         const result = await reportService.clearAllReports();
 
         if (result.success) {
-            res.json({
+            return res.json({
                 success: true,
                 message: `Datenbank erfolgreich geleert. ${result.deletedCount} Berichte entfernt.`
             });
         } else {
-            res.status(500).json({
+            return res.status(500).json({
                 success: false,
                 message: 'Fehler beim Leeren der Datenbank'
             });
         }
     } catch (error) {
-        res.status(500).json({
+        return res.status(500).json({
             success: false,
             message: 'Fehler beim Leeren der Datenbank'
         });
