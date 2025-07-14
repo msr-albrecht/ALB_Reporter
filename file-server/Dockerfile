@@ -10,7 +10,7 @@ RUN addgroup -g 1001 -S nodejs && adduser -S nodeuser -u 1001
 
 # Kopiere package.json und installiere Dependencies
 COPY package*.json ./
-RUN npm ci --only=production && npm cache clean --force
+RUN npm install --omit=dev && npm cache clean --force
 
 # Kopiere Source Code
 COPY server.js ./

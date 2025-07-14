@@ -4,7 +4,7 @@ services:
     build: .
     container_name: alb_reporter_container
     ports:
-      - "4055:4055"
+      - "4055:80"
     volumes:
       # CSV-Dateien einbinden
       - ./arbeiter.csv:/app/arbeiter.csv
