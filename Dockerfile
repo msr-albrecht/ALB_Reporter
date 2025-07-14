@@ -3,7 +3,7 @@ FROM node:current-bullseye
 WORKDIR /app
 
 # Kopiere package.json Dateien
-COPY package*.json ./
+COPY package.json package-lock.json ./
 
 # Installiere alle Dependencies (inkl. dev) für Build
 RUN npm install && npm cache clean --force
