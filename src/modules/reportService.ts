@@ -95,7 +95,7 @@ export class ReportService {
                 ...(request.zusatzInformationen && { zusatzInformationen: request.zusatzInformationen })
             };
 
-            const savedReport = await this.dbManager.saveReport(reportData);
+            const savedReport = await this.dbManager.saveReport(reportData, request.customReportNumber);
 
             let generator;
             let documentName;

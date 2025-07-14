@@ -24,6 +24,106 @@ body {
 }
 
 .header {
+    margin-bottom: 30px;
+}
+
+.header-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 20px;
+}
+
+.header-left {
+    flex: 1;
+}
+
+.header-left h1 {
+    color: #333;
+    font-size: 2.5rem;
+    margin-bottom: 10px;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    text-align: left;
+}
+
+.header-left p {
+    color: #666;
+    font-size: 1.1rem;
+    text-align: left;
+}
+
+.header-right {
+    flex-shrink: 0;
+    min-width: 200px;
+}
+
+.report-number-input {
+    background: #f8f9fa;
+    padding: 15px;
+    border-radius: 8px;
+    border: 2px solid #e1e5e9;
+    text-align: center;
+}
+
+.report-number-input label {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 8px;
+    display: block;
+}
+
+.report-number-input input {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 14px;
+    text-align: center;
+    margin-bottom: 5px;
+}
+
+.report-number-input input:focus {
+    border-color: #667eea;
+    box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.1);
+}
+
+.report-number-input small {
+    font-size: 0.8rem;
+    color: #666;
+    display: block;
+    line-height: 1.3;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+}
+
+.container {
+    background: white;
+    border-radius: 15px;
+    box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+    padding: 40px;
+    width: 100%;
+    max-width: 800px;
+}
+
+.header {
     text-align: center;
     margin-bottom: 30px;
 }
@@ -812,5 +912,25 @@ input:focus, select:focus, textarea:focus {
 
     .mitarbeiter-grid {
         grid-template-columns: 1fr;
+    }
+
+    .header-content {
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+    }
+
+    .header-left h1 {
+        text-align: center;
+    }
+
+    .header-left p {
+        text-align: center;
+    }
+
+    .header-right {
+        min-width: auto;
+        width: 100%;
+        max-width: 250px;
     }
 }

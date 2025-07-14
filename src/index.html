@@ -9,8 +9,21 @@
 <body>
 <div class="container">
     <div class="header">
-        <h1>📊 Berichtsgenerator</h1>
-        <p>Erstellen Sie professionelle Berichte mit automatischer Nummerierung</p>
+        <div class="header-content">
+            <div class="header-left">
+                <h1>📊 Berichtsgenerator</h1>
+                <p>Erstellen Sie professionelle Berichte mit automatischer Nummerierung</p>
+            </div>
+            <div class="header-right">
+                <div class="report-number-input">
+                    <label for="customReportNumber">Berichtsnummer:</label>
+                    <input type="number" id="customReportNumber" name="customReportNumber"
+                           placeholder="Auto" min="1" max="9999"
+                           title="Benutzerdefinierte Berichtsnummer (optional)">
+                    <small>Optional: Startnummer für den Bericht</small>
+                </div>
+            </div>
+        </div>
     </div>
 
     <form id="berichtForm">
@@ -482,6 +495,8 @@ document.addEventListener('DOMContentLoaded', function() {
             zusatzInformationen: formData.get('zusatzInformationen') || undefined,
             individualDates: individualDates,
             individualTimes: individualTimes,
+            // Benutzerdefinierte Berichtsnummer (neu)
+            customReportNumber: document.getElementById('customReportNumber').value || undefined,
             // Material data for Regieberichte/Regieanträge
             materials: materials.length > 0 ? materials : undefined,
             // WZ-Daten für Regieberichte/Regieanträge

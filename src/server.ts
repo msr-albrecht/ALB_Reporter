@@ -88,7 +88,7 @@ function createSelfSignedCertificate(): { key: string; cert: string } {
             name: 'keyUsage',
             keyCertSign: true,
             digitalSignature: true,
-            nonRepudiation: true,
+              nonRepudiation: true,
             keyEncipherment: true,
             dataEncipherment: true
         },

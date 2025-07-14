@@ -165,8 +165,23 @@ export class DatabaseManager {
         });
     }
 
-    async saveReport(reportData: Omit<ReportData, 'reportNumber'>): Promise<ReportData> {
-        const reportNumber = await this.getNextReportNumber(reportData.kuerzel, reportData.documentType);
+    async saveReport(reportData: Omit<ReportData, 'reportNumber'>, customReportNumber?: number): Promise<ReportData> {
+        let reportNumber: number;
+
+        if (customReportNumber && customReportNumber > 0) {
+            // Prüfe ob die benutzerdefinierte Nummer bereits existiert
+            const existingReport = await this.getReportByNumber(reportData.kuerzel, reportData.documentType, customReportNumber);
+            if (existingReport) {
+                throw new Error(`Berichtsnummer ${customReportNumber} für ${reportData.kuerzel} bereits vergeben.`);
+            }
+            reportNumber = customReportNumber;
+            console.log(`📝 Verwende benutzerdefinierte Berichtsnummer: ${reportNumber}`);
+        } else {
+            // Automatische Nummerierung
+            reportNumber = await this.getNextReportNumber(reportData.kuerzel, reportData.documentType);
+            console.log(`📝 Automatische Berichtsnummer: ${reportNumber}`);
+        }
+
         const fullReportData: ReportData = { ...reportData, reportNumber };
         const tableName = this.getTableName(reportData.documentType);
 
@@ -197,6 +212,20 @@ export class DatabaseManager {
                     reject(err);
                 } else {
                     resolve(fullReportData);
+                }
+            });
+        });
+    }
+
+    async getReportByNumber(kuerzel: string, documentType: string, reportNumber: number): Promise<ReportData | null> {
+        const tableName = this.getTableName(documentType);
+        return new Promise((resolve, reject) => {
+            const query = `SELECT * FROM ${tableName} WHERE kuerzel = ? AND reportNumber = ?`;
+            this.db.get(query, [kuerzel, reportNumber], (err, row: any) => {
+                if (err) {
+                    reject(err);
+                } else {
+                    resolve(row ? (row as ReportData) : null);
                 }
             });
         });
