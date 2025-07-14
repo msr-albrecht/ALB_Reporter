@@ -23,6 +23,7 @@ RUN mkdir -p photos \
     && mkdir -p files \
     && mkdir -p /tmp/berichte_temp/bautagesberichte \
     && mkdir -p /tmp/berichte_temp/regieberichte \
+    && mkdir -p /app/ssl \
     && chmod -R 777 files \
     && chmod -R 777 /tmp/berichte_temp \
     && chown -R node:node /app
