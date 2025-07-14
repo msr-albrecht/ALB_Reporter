@@ -23,7 +23,7 @@ services:
     restart: unless-stopped
 
   file-server:
-    image: your-file-server-image
+    build: ./file-server
     ports:
       - "3003:3003"
     networks:
