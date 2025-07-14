@@ -26,6 +26,7 @@ export interface CreateReportRequest {
     materials?: Array<{menge: string, einheit: string, beschreibung: string}>;
     wzData?: {[employeeName: string]: {includeWZ: boolean, kuerzel: string}};
     regieTextData?: {behinderungen: string, regieleistungen: string, bedenkanmeldung: string};
+    customReportNumber?: number; // Benutzerdefinierte Berichtsnummer
 }
 
 export interface CreateReportResponse {
