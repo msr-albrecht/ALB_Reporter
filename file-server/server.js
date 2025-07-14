@@ -9,13 +9,66 @@ import { v4 as uuidv4 } from 'uuid';
 import mime from 'mime-types';
 import morgan from 'morgan';
 import dotenv from 'dotenv';
+import https from 'https';
+import forge from 'node-forge';
 
 // Lade Umgebungsvariablen
 dotenv.config();
 
 const app = express();
-const PORT = process.env.FILE_SERVER_PORT || 3002;
+const PORT = process.env.FILE_SERVER_PORT || 3003;
 const HOST = process.env.FILE_SERVER_HOST || '0.0.0.0';
+
+// Funktion zum Erstellen selbstsignierter SSL-Zertifikate
+function createSelfSignedCertificate() {
+    console.log('Erstelle SSL-Zertifikate für File-Server...');
+
+    const keys = forge.pki.rsa.generateKeyPair(2048);
+    const cert = forge.pki.createCertificate();
+    cert.publicKey = keys.publicKey;
+    cert.serialNumber = '01';
+    cert.validity.notBefore = new Date();
+    cert.validity.notAfter = new Date();
+    cert.validity.notAfter.setFullYear(cert.validity.notBefore.getFullYear() + 1);
+
+    const attrs = [
+        { name: 'countryName', value: 'DE' },
+        { name: 'organizationName', value: 'File Server' },
+        { name: 'commonName', value: '139.162.154.60' }
+    ];
+    cert.setSubject(attrs);
+    cert.setIssuer(attrs);
+
+    cert.setExtensions([
+        {
+            name: 'basicConstraints',
+            cA: true
+        },
+        {
+            name: 'keyUsage',
+            keyCertSign: true,
+            digitalSignature: true,
+            nonRepudiation: true,
+            keyEncipherment: true,
+            dataEncipherment: true
+        },
+        {
+            name: 'subjectAltName',
+            altNames: [
+                { type: 2, value: 'localhost' },
+                { type: 7, ip: '127.0.0.1' },
+                { type: 7, ip: '139.162.154.60' }
+            ]
+        }
+    ]);
+
+    cert.sign(keys.privateKey);
+
+    return {
+        key: forge.pki.privateKeyToPem(keys.privateKey),
+        cert: forge.pki.certificateToPem(cert)
+    };
+}
 
 // Logging
 app.use(morgan('combined'));
@@ -443,7 +496,9 @@ app.use('*', (req, res) => {
 });
 
 // Server starten
-app.listen(PORT, HOST, () => {
+const sslOptions = createSelfSignedCertificate();
+
+https.createServer(sslOptions, app).listen(PORT, HOST, () => {
     const serverUrl = process.env.FILE_SERVER_URL || `http://${HOST}:${PORT}`;
     console.log('');
     console.log('🚀 ===============================================');
