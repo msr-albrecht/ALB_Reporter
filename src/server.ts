@@ -73,12 +73,12 @@ function createSelfSignedCertificate(): { key: string; cert: string } {
     const attrs = [
         { name: 'countryName', value: 'DE' },
         { name: 'organizationName', value: 'Berichte Generator' },
-        { name: 'commonName', value: 'localhost' }
+        { name: 'commonName', value: '139.162.154.60' }
     ];
     cert.setSubject(attrs);
     cert.setIssuer(attrs);
 
-    // Füge Erweiterungen hinzu
+    // Füge Erweiterungen hinzu - WICHTIG: IP-Adresse als Subject Alternative Name
     cert.setExtensions([
         {
             name: 'basicConstraints',
@@ -96,7 +96,8 @@ function createSelfSignedCertificate(): { key: string; cert: string } {
             name: 'subjectAltName',
             altNames: [
                 { type: 2, value: 'localhost' },
-                { type: 7, ip: '127.0.0.1' }
+                { type: 7, ip: '127.0.0.1' },
+                { type: 7, ip: '139.162.154.60' }  // Ihre Server-IP hinzugefügt
             ]
         }
     ]);
