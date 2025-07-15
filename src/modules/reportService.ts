@@ -304,7 +304,7 @@ export class ReportService {
                         deletedPath = testPath;
                         break;
                     } catch (fileError) {
-                        console.warn(`⚠️ Fehler beim Löschen der Datei: ${testPath} - ${fileError.message}`);
+                        console.warn(`⚠️ Fehler beim Löschen der Datei: ${testPath} - ${fileError instanceof Error ? fileError.message : String(fileError)}`);
                     }
                 } else {
                     console.log(`❌ Datei nicht gefunden: ${testPath}`);
@@ -394,4 +394,3 @@ export class ReportService {
         return null;
     }
 }
-
