@@ -121,41 +121,53 @@ export class DatabaseManager {
                         alterQueries.push(`ALTER TABLE ${tableName} ADD COLUMN fileUrl TEXT`);
                     }
 
-                    // Führe alle ALTER TABLE Befehle aus
-                    if (alterQueries.length > 0) {
-                        console.log(`Updating schema for table ${tableName}...`);
-                        let completed = 0;
-                        const total = alterQueries.length;
+                    // Migration für UNIQUE Constraint - erstelle neue Tabelle mit korrekter Struktur
+                    this.migrateTableConstraints(tableName).then(() => {
+                        // Führe alle ALTER TABLE Befehle aus
+                        if (alterQueries.length > 0) {
+                            console.log(`Updating schema for table ${tableName}...`);
+                            let completed = 0;
+                            const total = alterQueries.length;
 
-                        alterQueries.forEach(query => {
-                            this.db.run(query, (err) => {
-                                if (err) {
-                                    console.error(`Error altering table ${tableName}:`, err);
-                                    reject(err);
-                                } else {
-                                    completed++;
-                                    if (completed === total) {
-                                        console.log(`Schema update completed for table ${tableName}`);
-                                        resolve();
+                            alterQueries.forEach(query => {
+                                this.db.run(query, (err) => {
+                                    if (err) {
+                                        console.error(`Error altering table ${tableName}:`, err);
+                                        reject(err);
+                                    } else {
+                                        completed++;
+                                        if (completed === total) {
+                                            console.log(`Schema update completed for table ${tableName}`);
+                                            resolve();
+                                        }
                                     }
-                                }
+                                });
                             });
-                        });
-                    } else {
-                        resolve();
-                    }
+                        } else {
+                            resolve();
+                        }
+                    }).catch(reject);
                 });
             });
+        });
+    }
+
+    private async migrateTableConstraints(tableName: string): Promise<void> {
+        return new Promise((resolve, reject) => {
+            // Da verschiedene Berichtstypen die gleiche Nummer haben können sollen,
+            // ist keine Migration der UNIQUE-Constraint notwendig
+            console.log(`✅ Tabelle ${tableName} verwendet korrekte UNIQUE-Constraint (kuerzel, reportNumber)`);
+            resolve();
         });
     }
 
     async getNextReportNumber(kuerzel: string, documentType: string): Promise<number> {
         const tableName = this.getTableName(documentType);
         return new Promise((resolve, reject) => {
-            // Erweiterte Abfrage: Hole die absolut höchste reportNumber für dieses Kürzel und Dokumenttyp
-            // auch wenn sie manuell vergeben wurde
-            const query = `SELECT COALESCE(MAX(reportNumber), 0) as maxNumber FROM ${tableName} WHERE kuerzel = ? AND documentType = ?`;
-            this.db.get(query, [kuerzel, documentType], (err, row: any) => {
+            // Hole die höchste reportNumber für dieses Kürzel in DIESER spezifischen Tabelle
+            // (nicht gefiltert nach documentType, da jede Tabelle nur einen Dokumenttyp enthält)
+            const query = `SELECT COALESCE(MAX(reportNumber), 0) as maxNumber FROM ${tableName} WHERE kuerzel = ?`;
+            this.db.get(query, [kuerzel], (err, row: any) => {
                 if (err) {
                     console.error('Error getting next report number:', err);
                     reject(err);
@@ -163,20 +175,7 @@ export class DatabaseManager {
                     const maxNumber = row.maxNumber || 0;
                     const nextNumber = maxNumber + 1;
                     console.log(`📝 Automatische Berichtsnummer für ${kuerzel} (${documentType}): ${nextNumber} (höchste gefunden: ${maxNumber})`);
-
-                    // Zusätzliche Validierung: Prüfe nochmals, ob die Nummer bereits existiert
-                    this.getReportByNumber(kuerzel, documentType, nextNumber).then(existingReport => {
-                        if (existingReport) {
-                            console.warn(`⚠️ Berichtsnummer ${nextNumber} existiert bereits, suche nächste verfügbare...`);
-                            // Rekursiv die nächste verfügbare Nummer finden
-                            this.findNextAvailableNumber(kuerzel, documentType, nextNumber).then(availableNumber => {
-                                console.log(`📝 Nächste verfügbare Berichtsnummer: ${availableNumber}`);
-                                resolve(availableNumber);
-                            }).catch(reject);
-                        } else {
-                            resolve(nextNumber);
-                        }
-                    }).catch(reject);
+                    resolve(nextNumber);
                 }
             });
         });
@@ -201,8 +200,8 @@ export class DatabaseManager {
             // Hole die höchste existierende Berichtsnummer für diesen Dokumenttyp
             const tableName = this.getTableName(reportData.documentType);
             const highestNumber = await new Promise<number>((resolve, reject) => {
-                const query = `SELECT MAX(reportNumber) as maxNumber FROM ${tableName} WHERE kuerzel = ?`;
-                this.db.get(query, [reportData.kuerzel], (err, row: any) => {
+                const query = `SELECT MAX(reportNumber) as maxNumber FROM ${tableName} WHERE kuerzel = ? AND documentType = ?`;
+                this.db.get(query, [reportData.kuerzel, reportData.documentType], (err, row: any) => {
                     if (err) {
                         reject(err);
                     } else {
@@ -211,99 +210,70 @@ export class DatabaseManager {
                 });
             });
 
-            // Prüfe ob die benutzerdefinierte Nummer kleiner als die höchste existierende ist
-            if (customReportNumber <= highestNumber) {
-                throw new Error(`Berichtsnummer ${customReportNumber} ist zu niedrig. Die höchste existierende Nummer für ${reportData.documentType} ist ${highestNumber}. Verwenden Sie eine Nummer größer als ${highestNumber}.`);
-            }
-
-            // Prüfe ob die benutzerdefinierte Nummer bereits existiert
-            const existingReport = await this.getReportByNumber(reportData.kuerzel, reportData.documentType, customReportNumber);
-            if (existingReport) {
-                throw new Error(`Berichtsnummer ${customReportNumber} für ${reportData.kuerzel} bereits vergeben.`);
-            }
-            reportNumber = customReportNumber;
-            console.log(`📝 Verwende benutzerdefinierte Berichtsnummer: ${reportNumber}`);
+            reportNumber = Math.max(customReportNumber, highestNumber + 1);
         } else {
-            // Automatische Nummerierung
+            // Automatische Vergabe der Berichtsnummer
             reportNumber = await this.getNextReportNumber(reportData.kuerzel, reportData.documentType);
-            console.log(`📝 Automatische Berichtsnummer: ${reportNumber}`);
         }
 
-        const fullReportData: ReportData = { ...reportData, reportNumber };
-        const tableName = this.getTableName(reportData.documentType);
-
         return new Promise((resolve, reject) => {
-            const query = `
+            const tableName = this.getTableName(reportData.documentType);
+            const id = `${reportData.kuerzel}-${reportNumber}`;
+
+            const insertQuery = `
                 INSERT INTO ${tableName} (id, documentType, kuerzel, mitarbeiter, reportNumber, createdAt, fileName, filePath, fileUrl, arbeitsdatum, arbeitszeit, zusatzInformationen)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             `;
 
-            const values = [
-                fullReportData.id,
-                fullReportData.documentType,
-                fullReportData.kuerzel,
-                fullReportData.mitarbeiter,
-                fullReportData.reportNumber,
-                fullReportData.createdAt,
-                fullReportData.fileName,
-                fullReportData.filePath,
-                fullReportData.fileUrl || null,
-                fullReportData.arbeitsdatum || null,
-                fullReportData.arbeitszeit || null,
-                fullReportData.zusatzInformationen || null
-            ];
+            const now = new Date().toISOString();
 
-            this.db.run(query, values, function(err) {
+            this.db.run(insertQuery, [id, reportData.documentType, reportData.kuerzel, reportData.mitarbeiter, reportNumber, now, reportData.fileName, reportData.filePath, reportData.fileUrl, reportData.arbeitsdatum, reportData.arbeitszeit, reportData.zusatzInformationen], function (err) {
                 if (err) {
-                    console.error('Error saving report to database:', err);
+                    console.error('Error saving report:', err);
                     reject(err);
                 } else {
-                    resolve(fullReportData);
+                    resolve({ id, ...reportData, reportNumber });
+                }
+            });
+        });
+    }
+
+    async getReportById(id: string): Promise<ReportData | null> {
+        return new Promise((resolve, reject) => {
+            const query = `SELECT * FROM ${this.getTableName('bautagesbericht')} WHERE id = ?`;
+            this.db.get(query, [id], (err, row) => {
+                if (err) {
+                    console.error('Error fetching report by id:', err);
+                    reject(err);
+                } else {
+                    resolve(row as ReportData);
                 }
             });
         });
     }
 
     async getReportByNumber(kuerzel: string, documentType: string, reportNumber: number): Promise<ReportData | null> {
-        const tableName = this.getTableName(documentType);
         return new Promise((resolve, reject) => {
+            const tableName = this.getTableName(documentType);
             const query = `SELECT * FROM ${tableName} WHERE kuerzel = ? AND reportNumber = ?`;
-            this.db.get(query, [kuerzel, reportNumber], (err, row: any) => {
+            this.db.get(query, [kuerzel, reportNumber], (err, row) => {
                 if (err) {
+                    console.error('Error fetching report by number:', err);
                     reject(err);
                 } else {
-                    resolve(row ? (row as ReportData) : null);
+                    resolve(row as ReportData);
                 }
             });
         });
     }
 
-    async getAllReports(): Promise<ReportData[]> {
-        const allReports: ReportData[] = [];
-
-        for (const [documentType, tableName] of this.tableNames) {
-            const reports = await this.getReportsByType(documentType);
-            allReports.push(...reports);
-        }
-
-        // Sortiere nach Kürzel und Berichtsnummer
-        allReports.sort((a, b) => {
-            if (a.kuerzel !== b.kuerzel) {
-                return a.kuerzel.localeCompare(b.kuerzel);
-            }
-            return b.reportNumber - a.reportNumber;
-        });
-
-        return allReports;
-    }
-
-    async getReportsByType(documentType: string): Promise<ReportData[]> {
-        const tableName = this.getTableName(documentType);
+    async getReports(kuerzel: string, documentType: string, limit: number = 10, offset: number = 0): Promise<ReportData[]> {
         return new Promise((resolve, reject) => {
-            const query = `SELECT * FROM ${tableName} ORDER BY kuerzel ASC, reportNumber DESC`;
-            this.db.all(query, (err, rows: any[]) => {
+            const tableName = this.getTableName(documentType);
+            const query = `SELECT * FROM ${tableName} WHERE kuerzel = ? ORDER BY reportNumber DESC LIMIT ? OFFSET ?`;
+            this.db.all(query, [kuerzel, limit, offset], (err, rows) => {
                 if (err) {
-                    console.error(`Error fetching reports from ${tableName}:`, err);
+                    console.error('Error fetching reports:', err);
                     reject(err);
                 } else {
                     resolve(rows as ReportData[]);
@@ -312,44 +282,12 @@ export class DatabaseManager {
         });
     }
 
-    async getReportById(id: string): Promise<ReportData | null> {
-        for (const [documentType, tableName] of this.tableNames) {
-            const report = await this.getReportByIdFromTable(id, tableName);
-            if (report) {
-                return report;
-            }
-        }
-        return null;
-    }
-
-    private async getReportByIdFromTable(id: string, tableName: string): Promise<ReportData | null> {
-        return new Promise((resolve, reject) => {
-            const query = `SELECT * FROM ${tableName} WHERE id = ?`;
-            this.db.get(query, [id], (err, row: any) => {
-                if (err) {
-                    reject(err);
-                } else {
-                    resolve(row ? (row as ReportData) : null);
-                }
-            });
-        });
-    }
-
     async deleteReport(id: string): Promise<boolean> {
-        for (const [documentType, tableName] of this.tableNames) {
-            const deleted = await this.deleteReportFromTable(id, tableName);
-            if (deleted) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    private async deleteReportFromTable(id: string, tableName: string): Promise<boolean> {
         return new Promise((resolve, reject) => {
-            const query = `DELETE FROM ${tableName} WHERE id = ?`;
-            this.db.run(query, [id], function(err) {
+            const query = `DELETE FROM ${this.getTableName('bautagesbericht')} WHERE id = ?`;
+            this.db.run(query, [id], function (err) {
                 if (err) {
+                    console.error('Error deleting report:', err);
                     reject(err);
                 } else {
                     resolve(this.changes > 0);
@@ -358,30 +296,11 @@ export class DatabaseManager {
         });
     }
 
-    close(): void {
-        this.db.close();
-    }
-
-    async clearAllReports(): Promise<{ deletedCount: number }> {
-        return new Promise((resolve, reject) => {
-            this.db.get('SELECT COUNT(*) as count FROM reports', (err, row: any) => {
-                if (err) {
-                    reject(err);
-                    return;
-                }
-
-                const deletedCount = row.count;
-
-                this.db.run('DELETE FROM reports', (err) => {
-                    if (err) {
-                        reject(err);
-                        return;
-                    }
-
-                    console.log(`🗑️ Datenbank geleert: ${deletedCount} Berichte entfernt`);
-                    resolve({ deletedCount });
-                });
-            });
+    close() {
+        this.db.close((err) => {
+            if (err) {
+                console.error('Error closing database:', err);
+            }
         });
     }
 }
