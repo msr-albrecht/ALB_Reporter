@@ -197,42 +197,49 @@ export class DatabaseManager {
         let reportNumber: number;
 
         if (customReportNumber && customReportNumber > 0) {
-            // Hole die höchste existierende Berichtsnummer für diesen Dokumenttyp
-            const tableName = this.getTableName(reportData.documentType);
-            const highestNumber = await new Promise<number>((resolve, reject) => {
-                const query = `SELECT MAX(reportNumber) as maxNumber FROM ${tableName} WHERE kuerzel = ? AND documentType = ?`;
-                this.db.get(query, [reportData.kuerzel, reportData.documentType], (err, row: any) => {
-                    if (err) {
-                        reject(err);
-                    } else {
-                        resolve(row?.maxNumber || 0);
-                    }
-                });
-            });
-
-            reportNumber = Math.max(customReportNumber, highestNumber + 1);
+            // Prüfe ob die benutzerdefinierte Nummer bereits existiert
+            const existingReport = await this.getReportByNumber(reportData.kuerzel, reportData.documentType, customReportNumber);
+            if (existingReport) {
+                throw new Error(`Berichtsnummer ${customReportNumber} für ${reportData.kuerzel} bereits vergeben.`);
+            }
+            reportNumber = customReportNumber;
+            console.log(`📝 Verwende benutzerdefinierte Berichtsnummer: ${reportNumber}`);
         } else {
-            // Automatische Vergabe der Berichtsnummer
+            // Automatische Nummerierung
             reportNumber = await this.getNextReportNumber(reportData.kuerzel, reportData.documentType);
+            console.log(`📝 Automatische Berichtsnummer: ${reportNumber}`);
         }
 
-        return new Promise((resolve, reject) => {
-            const tableName = this.getTableName(reportData.documentType);
-            const id = `${reportData.kuerzel}-${reportNumber}`;
+        const fullReportData: ReportData = { ...reportData, reportNumber };
+        const tableName = this.getTableName(reportData.documentType);
 
-            const insertQuery = `
+        return new Promise((resolve, reject) => {
+            const query = `
                 INSERT INTO ${tableName} (id, documentType, kuerzel, mitarbeiter, reportNumber, createdAt, fileName, filePath, fileUrl, arbeitsdatum, arbeitszeit, zusatzInformationen)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             `;
 
-            const now = new Date().toISOString();
+            const values = [
+                fullReportData.id,
+                fullReportData.documentType,
+                fullReportData.kuerzel,
+                fullReportData.mitarbeiter,
+                fullReportData.reportNumber,
+                fullReportData.createdAt,
+                fullReportData.fileName,
+                fullReportData.filePath,
+                fullReportData.fileUrl || null,
+                fullReportData.arbeitsdatum || null,
+                fullReportData.arbeitszeit || null,
+                fullReportData.zusatzInformationen || null
+            ];
 
-            this.db.run(insertQuery, [id, reportData.documentType, reportData.kuerzel, reportData.mitarbeiter, reportNumber, now, reportData.fileName, reportData.filePath, reportData.fileUrl, reportData.arbeitsdatum, reportData.arbeitszeit, reportData.zusatzInformationen], function (err) {
+            this.db.run(query, values, function(err) {
                 if (err) {
-                    console.error('Error saving report:', err);
+                    console.error('Error saving report to database:', err);
                     reject(err);
                 } else {
-                    resolve({ id, ...reportData, reportNumber });
+                    resolve(fullReportData);
                 }
             });
         });
