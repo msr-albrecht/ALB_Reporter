@@ -152,9 +152,10 @@ export class DatabaseManager {
     async getNextReportNumber(kuerzel: string, documentType: string): Promise<number> {
         const tableName = this.getTableName(documentType);
         return new Promise((resolve, reject) => {
-            // Einfache Abfrage: Hole die absolut höchste reportNumber für dieses Kürzel und Dokumenttyp
-            const query = `SELECT COALESCE(MAX(reportNumber), 0) as maxNumber FROM ${tableName} WHERE kuerzel = ?`;
-            this.db.get(query, [kuerzel], (err, row: any) => {
+            // Erweiterte Abfrage: Hole die absolut höchste reportNumber für dieses Kürzel und Dokumenttyp
+            // auch wenn sie manuell vergeben wurde
+            const query = `SELECT COALESCE(MAX(reportNumber), 0) as maxNumber FROM ${tableName} WHERE kuerzel = ? AND documentType = ?`;
+            this.db.get(query, [kuerzel, documentType], (err, row: any) => {
                 if (err) {
                     console.error('Error getting next report number:', err);
                     reject(err);
@@ -162,10 +163,35 @@ export class DatabaseManager {
                     const maxNumber = row.maxNumber || 0;
                     const nextNumber = maxNumber + 1;
                     console.log(`📝 Automatische Berichtsnummer für ${kuerzel} (${documentType}): ${nextNumber} (höchste gefunden: ${maxNumber})`);
-                    resolve(nextNumber);
+
+                    // Zusätzliche Validierung: Prüfe nochmals, ob die Nummer bereits existiert
+                    this.getReportByNumber(kuerzel, documentType, nextNumber).then(existingReport => {
+                        if (existingReport) {
+                            console.warn(`⚠️ Berichtsnummer ${nextNumber} existiert bereits, suche nächste verfügbare...`);
+                            // Rekursiv die nächste verfügbare Nummer finden
+                            this.findNextAvailableNumber(kuerzel, documentType, nextNumber).then(availableNumber => {
+                                console.log(`📝 Nächste verfügbare Berichtsnummer: ${availableNumber}`);
+                                resolve(availableNumber);
+                            }).catch(reject);
+                        } else {
+                            resolve(nextNumber);
+                        }
+                    }).catch(reject);
                 }
             });
         });
+    }
+
+    private async findNextAvailableNumber(kuerzel: string, documentType: string, startNumber: number): Promise<number> {
+        let currentNumber = startNumber;
+        let existingReport = await this.getReportByNumber(kuerzel, documentType, currentNumber);
+
+        while (existingReport) {
+            currentNumber++;
+            existingReport = await this.getReportByNumber(kuerzel, documentType, currentNumber);
+        }
+
+        return currentNumber;
     }
 
     async saveReport(reportData: Omit<ReportData, 'reportNumber'>, customReportNumber?: number): Promise<ReportData> {
