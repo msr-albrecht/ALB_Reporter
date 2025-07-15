@@ -159,6 +159,7 @@ export class DatabaseManager {
                     reject(err);
                 } else {
                     const nextNumber = (row?.maxNumber || 0) + 1;
+                    console.log(`📝 Nächste automatische Berichtsnummer für ${kuerzel} (${documentType}): ${nextNumber} (basierend auf höchster: ${row?.maxNumber || 0})`);
                     resolve(nextNumber);
                 }
             });
@@ -169,6 +170,24 @@ export class DatabaseManager {
         let reportNumber: number;
 
         if (customReportNumber && customReportNumber > 0) {
+            // Hole die höchste existierende Berichtsnummer für diesen Dokumenttyp
+            const tableName = this.getTableName(reportData.documentType);
+            const highestNumber = await new Promise<number>((resolve, reject) => {
+                const query = `SELECT MAX(reportNumber) as maxNumber FROM ${tableName} WHERE kuerzel = ?`;
+                this.db.get(query, [reportData.kuerzel], (err, row: any) => {
+                    if (err) {
+                        reject(err);
+                    } else {
+                        resolve(row?.maxNumber || 0);
+                    }
+                });
+            });
+
+            // Prüfe ob die benutzerdefinierte Nummer kleiner als die höchste existierende ist
+            if (customReportNumber <= highestNumber) {
+                throw new Error(`Berichtsnummer ${customReportNumber} ist zu niedrig. Die höchste existierende Nummer für ${reportData.documentType} ist ${highestNumber}. Verwenden Sie eine Nummer größer als ${highestNumber}.`);
+            }
+
             // Prüfe ob die benutzerdefinierte Nummer bereits existiert
             const existingReport = await this.getReportByNumber(reportData.kuerzel, reportData.documentType, customReportNumber);
             if (existingReport) {
