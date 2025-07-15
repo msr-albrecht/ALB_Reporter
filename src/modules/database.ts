@@ -158,8 +158,9 @@ export class DatabaseManager {
                     console.error('Error getting next report number:', err);
                     reject(err);
                 } else {
-                    const nextNumber = (row?.maxNumber || 0) + 1;
-                    console.log(`📝 Nächste automatische Berichtsnummer für ${kuerzel} (${documentType}): ${nextNumber} (basierend auf höchster: ${row?.maxNumber || 0})`);
+                    const maxNumber = row?.maxNumber || 0;
+                    const nextNumber = maxNumber + 1;
+                    console.log(`📝 Nächste automatische Berichtsnummer für ${kuerzel} (${documentType}): ${nextNumber} (basierend auf höchster: ${maxNumber})`);
                     resolve(nextNumber);
                 }
             });
