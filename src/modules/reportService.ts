@@ -234,24 +234,73 @@ export class ReportService {
                 };
             }
 
-            // Lösche die Datei vom Filesystem falls vorhanden
-            if (report.filePath && fs.existsSync(report.filePath)) {
-                try {
-                    fs.unlinkSync(report.filePath);
-                    console.log(`🗑️ Datei gelöscht: ${report.filePath}`);
-                } catch (fileError) {
-                    console.warn(`⚠️ Warnung: Datei konnte nicht gelöscht werden: ${report.filePath}`);
+            // Konstruiere den korrekten Pfad im File-Server Storage
+            let actualFilePath = report.filePath;
+
+            // Wenn der Pfad aus der DB ein temp-Pfad ist, konvertiere ihn zum Storage-Pfad
+            if (report.filePath && report.filePath.includes('/tmp/berichte_temp')) {
+                // Extrahiere den Dateinamen aus dem temporären Pfad
+                const fileName = report.fileName;
+
+                // Bestimme den korrekten Storage-Pfad basierend auf dem Dokumenttyp
+                const currentDate = new Date();
+                const year = currentDate.getFullYear();
+                const month = currentDate.getMonth() + 1;
+
+                let storageSubDir = '';
+                switch (report.documentType) {
+                    case 'bautagesbericht':
+                        storageSubDir = 'bautagesberichte';
+                        break;
+                    case 'regiebericht':
+                        storageSubDir = 'regieberichte';
+                        break;
+                    case 'regieantrag':
+                        storageSubDir = 'regieantraege';
+                        break;
+                    default:
+                        storageSubDir = 'berichte';
+                }
+
+                actualFilePath = `/app/storage/berichte/${storageSubDir}/${year}/${month.toString().padStart(2, '0')}/${fileName}`;
+                console.log(`🔍 Konvertiere Pfad: ${report.filePath} → ${actualFilePath}`);
+            }
+
+            // Versuche alternative Pfade falls der erste nicht existiert
+            const possiblePaths = [
+                actualFilePath,
+                report.filePath, // Original-Pfad aus DB
+                `/app/storage/${report.fileName}`, // Direkt im Storage-Root
+                `/app/storage/berichte/${report.fileName}` // Im berichte-Unterordner
+            ];
+
+            let fileDeleted = false;
+            for (const testPath of possiblePaths) {
+                if (testPath && fs.existsSync(testPath)) {
+                    try {
+                        fs.unlinkSync(testPath);
+                        console.log(`🗑️ Datei gelöscht: ${testPath}`);
+                        fileDeleted = true;
+                        break;
+                    } catch (fileError) {
+                        console.warn(`⚠️ Warnung: Datei konnte nicht gelöscht werden: ${testPath}`);
+                    }
                 }
             }
 
-            // Lösche den Eintrag aus der Datenbank
+            if (!fileDeleted) {
+                console.warn(`⚠️ Datei nicht gefunden oder konnte nicht gelöscht werden. Geprüfte Pfade:`);
+                possiblePaths.forEach(path => console.warn(`   - ${path}`));
+            }
+
+            // Lösche den Eintrag aus der Datenbank (auch wenn Datei nicht gefunden)
             const deleted = await this.dbManager.deleteReport(id);
 
             if (deleted) {
                 console.log(`🗑️ Bericht gelöscht: ${report.fileName} (ID: ${id})`);
                 return {
                     success: true,
-                    message: 'Bericht erfolgreich gelöscht'
+                    message: fileDeleted ? 'Bericht und Datei erfolgreich gelöscht' : 'Bericht gelöscht (Datei war bereits entfernt)'
                 };
             } else {
                 return {
