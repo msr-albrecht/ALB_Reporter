@@ -671,7 +671,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     ${report.zusatzInformationen ? `<p><strong>Zusatz:</strong> ${report.zusatzInformationen}</p>` : ''}
                 </div>
                 <div class="report-actions">
-                    <a href="/report-detail?id=${report.id}" class="btn-open">👁️ Details anzeigen</a>
+                    <button class="btn-delete" onclick="deleteReport('${report.id}')">🗑️ Löschen</button>
                     <a href="/api/reports/${report.id}/download" target="_blank" class="btn-download">📄 Herunterladen</a>
                 </div>
             </div>
@@ -740,6 +740,47 @@ document.addEventListener('DOMContentLoaded', function() {
         const itemToRemove = document.querySelector(`.material-item[data-index="${index}"]`);
         if (itemToRemove) {
             itemToRemove.remove();
+        }
+    }
+
+    // Delete report function
+    window.deleteReport = async function(reportId) {
+        if (!confirm('Sind Sie sicher, dass Sie diesen Bericht löschen möchten? Diese Aktion kann nicht rückgängig gemacht werden.')) {
+            return;
+        }
+
+        try {
+            const response = await fetch(`/api/reports/${reportId}`, {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                // Show success message
+                const tempSuccessMessage = document.createElement('div');
+                tempSuccessMessage.className = 'success-message';
+                tempSuccessMessage.innerHTML = '<strong>✅ Erfolg!</strong> Bericht wurde erfolgreich gelöscht.';
+                tempSuccessMessage.style.display = 'block';
+
+                document.querySelector('.container').insertBefore(tempSuccessMessage, document.querySelector('form'));
+
+                // Hide success message after 3 seconds
+                setTimeout(() => {
+                    tempSuccessMessage.remove();
+                }, 3000);
+
+                // Refresh reports list
+                loadReports();
+            } else {
+                alert('Fehler beim Löschen: ' + result.message);
+            }
+        } catch (error) {
+            console.error('Error deleting report:', error);
+            alert('Fehler beim Löschen des Berichts: ' + error.message);
         }
     }
 });

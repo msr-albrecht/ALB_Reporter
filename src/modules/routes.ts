@@ -87,85 +87,71 @@ reportRouter.get('/reports', async (req: Request, res: Response) => {
     }
 });
 
-reportRouter.get('/reports/:id', async (req: Request, res: Response) => {
+// Lösch-Route für Berichte
+reportRouter.delete('/reports/:id', async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
-        if (id) {
-            const report = await reportService.getReportById(id);
-            if (report) {
-                // Erweitere die Berichtdaten mit zusätzlichen Informationen
-                const csvData = await csvReader.readCsvData();
-                const projectData = csvData.find(item => item.kuerzel === report.kuerzel);
+        if (!id) {
+            res.status(400).json({
+                success: false,
+                message: 'Bericht-ID ist erforderlich'
+            });
+            return;
+        }
 
-                const enrichedReport = {
-                    ...report,
-                    kunde: projectData?.kunde || '',
-                    strasseKunde: projectData?.strasseKunde || '',
-                    ortKunde: projectData?.ortKunde || '',
-                    baustelle: projectData?.baustelle || '',
-                    strasseBaustelle: projectData?.strasseBaustelle || '',
-                    ortBaustelle: projectData?.ortBaustelle || '',
-                    auftragsNr: projectData?.auftragsNr || '',
-                    vergNr: projectData?.vergNr || '',
-                    // Füge zusätzliche Felder hinzu falls vorhanden
-                    arbeitsdatum: report.arbeitsdatum || '',
-                    arbeitszeit: report.arbeitszeit || '',
-                    zusatzInformationen: report.zusatzInformationen || ''
-                };
+        const result = await reportService.deleteReport(id);
 
-                res.json({
-                    success: true,
-                    report: enrichedReport
-                });
-            } else {
-                res.status(404).json({
-                    success: false,
-                    message: 'Bericht nicht gefunden'
-                });
-            }
+        if (result.success) {
+            res.json({
+                success: true,
+                message: 'Bericht erfolgreich gelöscht'
+            });
+        } else {
+            res.status(404).json({
+                success: false,
+                message: 'Bericht nicht gefunden'
+            });
         }
     } catch (error) {
         res.status(500).json({
             success: false,
-            message: 'Fehler beim Laden des Berichts'
+            message: 'Fehler beim Löschen des Berichts'
         });
     }
 });
 
-reportRouter.get('/reports/:id/view', async (req: Request, res: Response) => {
+// Admin-Endpoint zum Leeren der Datenbank
+reportRouter.delete('/admin/clear-database', async (req: Request, res: Response) => {
     try {
-        const { id } = req.params;
-        if (id) {
-            const report = await reportService.getReportById(id);
-            if (report && report.filePath) {
-                if (require('fs').existsSync(report.filePath)) {
-                    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
-                    res.setHeader('Content-Disposition', `inline; filename="${report.fileName}"`);
-                    res.sendFile(require('path').resolve(report.filePath), (err) => {
-                        if (err) {
-                            res.status(500).json({
-                                success: false,
-                                message: 'Fehler beim Öffnen der Datei'
-                            });
-                        }
-                    });
-                } else {
-                    res.status(404).json({
-                        success: false,
-                        message: 'Datei nicht gefunden'
-                    });
-                }
-            } else {
-                res.status(404).json({
-                    success: false,
-                    message: 'Bericht nicht gefunden'
-                });
-            }
+        // Einfacher Sicherheitscheck - Sie können hier ein Admin-Token hinzufügen
+        const headerKey = req.headers['x-admin-key'];
+        const queryKey = req.query.adminKey;
+        const adminKey = typeof headerKey === 'string' ? headerKey : typeof queryKey === 'string' ? queryKey : '';
+
+        if (!adminKey || (adminKey !== process.env.ADMIN_KEY && adminKey !== 'admin123')) {
+            return res.status(401).json({
+                success: false,
+                message: 'Nicht autorisiert. Admin-Schlüssel erforderlich.'
+            });
+        }
+
+        const result = await reportService.clearAllReports();
+
+        if (result.success) {
+            return res.json({
+                success: true,
+                message: `Datenbank erfolgreich geleert. ${result.deletedCount} Berichte entfernt.`
+            });
+        } else {
+            return res.status(500).json({
+                success: false,
+                message: 'Fehler beim Leeren der Datenbank'
+            });
         }
     } catch (error) {
-        res.status(500).json({
+        return res.status(500).json({
             success: false,
-            message: 'Fehler beim Öffnen der Datei'
+            message: 'Fehler beim Leeren der Datenbank'
         });
     }
 });
@@ -206,42 +192,6 @@ reportRouter.get('/reports/:id/download', async (req: Request, res: Response): P
         res.status(500).json({
             success: false,
             message: 'Fehler beim Download'
-        });
-    }
-});
-
-// Admin-Endpoint zum Leeren der Datenbank
-reportRouter.delete('/admin/clear-database', async (req: Request, res: Response) => {
-    try {
-        // Einfacher Sicherheitscheck - Sie können hier ein Admin-Token hinzufügen
-        const headerKey = req.headers['x-admin-key'];
-        const queryKey = req.query.adminKey;
-        const adminKey = typeof headerKey === 'string' ? headerKey : typeof queryKey === 'string' ? queryKey : '';
-
-        if (!adminKey || (adminKey !== process.env.ADMIN_KEY && adminKey !== 'admin123')) {
-            return res.status(401).json({
-                success: false,
-                message: 'Nicht autorisiert. Admin-Schlüssel erforderlich.'
-            });
-        }
-
-        const result = await reportService.clearAllReports();
-
-        if (result.success) {
-            return res.json({
-                success: true,
-                message: `Datenbank erfolgreich geleert. ${result.deletedCount} Berichte entfernt.`
-            });
-        } else {
-            return res.status(500).json({
-                success: false,
-                message: 'Fehler beim Leeren der Datenbank'
-            });
-        }
-    } catch (error) {
-        return res.status(500).json({
-            success: false,
-            message: 'Fehler beim Leeren der Datenbank'
         });
     }
 });

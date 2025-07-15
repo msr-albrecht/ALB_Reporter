@@ -224,20 +224,47 @@ export class ReportService {
         }
     }
 
-    async deleteReport(id: string): Promise<boolean> {
+    async deleteReport(id: string): Promise<{ success: boolean; message?: string }> {
         try {
             const report = await this.dbManager.getReportById(id);
             if (!report) {
-                return false;
+                return {
+                    success: false,
+                    message: 'Bericht nicht gefunden'
+                };
             }
 
-            if (fs.existsSync(report.filePath)) {
-                fs.unlinkSync(report.filePath);
+            // Lösche die Datei vom Filesystem falls vorhanden
+            if (report.filePath && fs.existsSync(report.filePath)) {
+                try {
+                    fs.unlinkSync(report.filePath);
+                    console.log(`🗑️ Datei gelöscht: ${report.filePath}`);
+                } catch (fileError) {
+                    console.warn(`⚠️ Warnung: Datei konnte nicht gelöscht werden: ${report.filePath}`);
+                }
             }
 
-            return await this.dbManager.deleteReport(id);
+            // Lösche den Eintrag aus der Datenbank
+            const deleted = await this.dbManager.deleteReport(id);
+
+            if (deleted) {
+                console.log(`🗑️ Bericht gelöscht: ${report.fileName} (ID: ${id})`);
+                return {
+                    success: true,
+                    message: 'Bericht erfolgreich gelöscht'
+                };
+            } else {
+                return {
+                    success: false,
+                    message: 'Fehler beim Löschen aus der Datenbank'
+                };
+            }
         } catch (error) {
-            return false;
+            console.error('Fehler beim Löschen des Berichts:', error);
+            return {
+                success: false,
+                message: 'Fehler beim Löschen des Berichts'
+            };
         }
     }
 
