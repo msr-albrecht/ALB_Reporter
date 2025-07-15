@@ -282,12 +282,68 @@ export class DatabaseManager {
         });
     }
 
-    async deleteReport(id: string): Promise<boolean> {
+    async getAllReports(): Promise<ReportData[]> {
+        const allReports: ReportData[] = [];
+
+        for (const [documentType, tableName] of this.tableNames) {
+            const reports = await this.getReportsByType(documentType);
+            allReports.push(...reports);
+        }
+
+        // Sortiere nach Kürzel und Berichtsnummer
+        allReports.sort((a, b) => {
+            if (a.kuerzel !== b.kuerzel) {
+                return a.kuerzel.localeCompare(b.kuerzel);
+            }
+            return b.reportNumber - a.reportNumber;
+        });
+
+        return allReports;
+    }
+
+    async getReportsByType(documentType: string): Promise<ReportData[]> {
+        const tableName = this.getTableName(documentType);
         return new Promise((resolve, reject) => {
-            const query = `DELETE FROM ${this.getTableName('bautagesbericht')} WHERE id = ?`;
-            this.db.run(query, [id], function (err) {
+            const query = `SELECT * FROM ${tableName} ORDER BY kuerzel ASC, reportNumber DESC`;
+            this.db.all(query, (err, rows: any[]) => {
                 if (err) {
-                    console.error('Error deleting report:', err);
+                    console.error(`Error fetching reports from ${tableName}:`, err);
+                    reject(err);
+                } else {
+                    resolve(rows as ReportData[]);
+                }
+            });
+        });
+    }
+
+    private async getReportByIdFromTable(id: string, tableName: string): Promise<ReportData | null> {
+        return new Promise((resolve, reject) => {
+            const query = `SELECT * FROM ${tableName} WHERE id = ?`;
+            this.db.get(query, [id], (err, row: any) => {
+                if (err) {
+                    reject(err);
+                } else {
+                    resolve(row ? (row as ReportData) : null);
+                }
+            });
+        });
+    }
+
+    async deleteReport(id: string): Promise<boolean> {
+        for (const [documentType, tableName] of this.tableNames) {
+            const deleted = await this.deleteReportFromTable(id, tableName);
+            if (deleted) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private async deleteReportFromTable(id: string, tableName: string): Promise<boolean> {
+        return new Promise((resolve, reject) => {
+            const query = `DELETE FROM ${tableName} WHERE id = ?`;
+            this.db.run(query, [id], function(err) {
+                if (err) {
                     reject(err);
                 } else {
                     resolve(this.changes > 0);
@@ -296,11 +352,37 @@ export class DatabaseManager {
         });
     }
 
-    close() {
-        this.db.close((err) => {
-            if (err) {
-                console.error('Error closing database:', err);
-            }
-        });
+    async clearAllReports(): Promise<{ deletedCount: number }> {
+        let totalDeleted = 0;
+
+        for (const [documentType, tableName] of this.tableNames) {
+            const count = await new Promise<number>((resolve, reject) => {
+                this.db.get(`SELECT COUNT(*) as count FROM ${tableName}`, (err, row: any) => {
+                    if (err) {
+                        reject(err);
+                    } else {
+                        resolve(row.count || 0);
+                    }
+                });
+            });
+
+            await new Promise<void>((resolve, reject) => {
+                this.db.run(`DELETE FROM ${tableName}`, (err) => {
+                    if (err) {
+                        reject(err);
+                    } else {
+                        totalDeleted += count;
+                        resolve();
+                    }
+                });
+            });
+        }
+
+        console.log(`🗑️ Datenbank geleert: ${totalDeleted} Berichte entfernt`);
+        return { deletedCount: totalDeleted };
+    }
+
+    close(): void {
+        this.db.close();
     }
 }
