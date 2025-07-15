@@ -33,15 +33,17 @@ export class RegieGenerator {
         try {
             // Prüfe ob es ein Datumsbereich ist (z.B. "2025-01-01 - 2025-01-01")
             if (dateString.includes(' - ')) {
-                const [startDate, endDate] = dateString.split(' - ').map(d => d.trim());
-                const formattedStart = this.formatSingleDate(startDate);
-                const formattedEnd = this.formatSingleDate(endDate);
+                const parts = dateString.split(' - ').map(d => d.trim());
+                if (parts.length >= 2 && parts[0] && parts[1]) {
+                    const formattedStart = this.formatSingleDate(parts[0]);
+                    const formattedEnd = this.formatSingleDate(parts[1]);
 
-                // Wenn Start- und Enddatum gleich sind, nur einmal anzeigen
-                if (formattedStart === formattedEnd) {
-                    return formattedStart;
+                    // Wenn Start- und Enddatum gleich sind, nur einmal anzeigen
+                    if (formattedStart === formattedEnd) {
+                        return formattedStart;
+                    }
+                    return `${formattedStart} - ${formattedEnd}`;
                 }
-                return `${formattedStart} - ${formattedEnd}`;
             }
 
             // Einzelnes Datum formatieren
