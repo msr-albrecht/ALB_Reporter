@@ -152,15 +152,16 @@ export class DatabaseManager {
     async getNextReportNumber(kuerzel: string, documentType: string): Promise<number> {
         const tableName = this.getTableName(documentType);
         return new Promise((resolve, reject) => {
-            const query = `SELECT MAX(reportNumber) as maxNumber FROM ${tableName} WHERE kuerzel = ?`;
+            // Einfache Abfrage: Hole die absolut höchste reportNumber für dieses Kürzel und Dokumenttyp
+            const query = `SELECT COALESCE(MAX(reportNumber), 0) as maxNumber FROM ${tableName} WHERE kuerzel = ?`;
             this.db.get(query, [kuerzel], (err, row: any) => {
                 if (err) {
                     console.error('Error getting next report number:', err);
                     reject(err);
                 } else {
-                    const maxNumber = row?.maxNumber || 0;
+                    const maxNumber = row.maxNumber || 0;
                     const nextNumber = maxNumber + 1;
-                    console.log(`📝 Nächste automatische Berichtsnummer für ${kuerzel} (${documentType}): ${nextNumber} (basierend auf höchster: ${maxNumber})`);
+                    console.log(`📝 Automatische Berichtsnummer für ${kuerzel} (${documentType}): ${nextNumber} (höchste gefunden: ${maxNumber})`);
                     resolve(nextNumber);
                 }
             });
