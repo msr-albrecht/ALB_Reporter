@@ -139,7 +139,8 @@ export class ReportService {
             };
 
             await this.dbManager.deleteReport(reportId);
-            const finalReport = await this.dbManager.saveReport(finalReportData);
+            // Wichtig: Verwende die bereits vergebene Berichtsnummer vom ersten Speichervorgang
+            const finalReport = await this.dbManager.saveReport(finalReportData, savedReport.reportNumber);
 
             return {
                 success: true,

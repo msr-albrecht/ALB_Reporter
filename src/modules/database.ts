@@ -246,17 +246,13 @@ export class DatabaseManager {
     }
 
     async getReportById(id: string): Promise<ReportData | null> {
-        return new Promise((resolve, reject) => {
-            const query = `SELECT * FROM ${this.getTableName('bautagesbericht')} WHERE id = ?`;
-            this.db.get(query, [id], (err, row) => {
-                if (err) {
-                    console.error('Error fetching report by id:', err);
-                    reject(err);
-                } else {
-                    resolve(row as ReportData);
-                }
-            });
-        });
+        for (const [documentType, tableName] of this.tableNames) {
+            const report = await this.getReportByIdFromTable(id, tableName);
+            if (report) {
+                return report;
+            }
+        }
+        return null;
     }
 
     async getReportByNumber(kuerzel: string, documentType: string, reportNumber: number): Promise<ReportData | null> {
@@ -268,7 +264,7 @@ export class DatabaseManager {
                     console.error('Error fetching report by number:', err);
                     reject(err);
                 } else {
-                    resolve(row as ReportData);
+                    resolve(row ? (row as ReportData) : null);
                 }
             });
         });
