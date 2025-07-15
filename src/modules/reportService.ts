@@ -234,101 +234,123 @@ export class ReportService {
                 };
             }
 
-            // Versuche verschiedene Pfad-Varianten
-            const possiblePaths = [];
+            console.log(`🗑️ Lösche Bericht: ${report.fileName} (ID: ${id})`);
 
-            // 1. Der lokale Pfad aus der Datenbank (wenn File-Server verwendet wird)
-            if (report.filePath) {
-                possiblePaths.push(report.filePath);
-            }
+            // Versuche zuerst, die Datei über den File-Server zu löschen
+            let fileDeleteSuccess = false;
+            let fileDeleteMessage = '';
 
-            // 2. Konstruiere den tatsächlichen Storage-Pfad basierend auf dem Dateinamen
             if (report.fileName) {
-                // Extrahiere das Datum aus dem Dateinamen
-                // Format: BTB_KUERZEL_YYYY_MM_DD_HH_MM_SS_...
-                const fileNameParts = report.fileName.split('_');
-                let year, month;
+                try {
+                    const deleteResult = await this.fileServer.deleteFile(report.fileName);
+                    fileDeleteSuccess = deleteResult.success;
+                    fileDeleteMessage = deleteResult.message || deleteResult.error || '';
 
-                if (fileNameParts.length >= 4) {
-                    year = fileNameParts[2]; // YYYY
-                    month = fileNameParts[3]; // MM
-                } else {
-                    // Fallback: verwende das Erstellungsdatum des Berichts
-                    const createdDate = new Date(report.createdAt);
-                    year = createdDate.getFullYear().toString();
-                    month = (createdDate.getMonth() + 1).toString().padStart(2, '0');
-                }
-
-                // Bestimme den korrekten Storage-Unterordner
-                let storageSubDir = '';
-                switch (report.documentType) {
-                    case 'bautagesbericht':
-                        storageSubDir = 'bautagesberichte';
-                        break;
-                    case 'regiebericht':
-                        storageSubDir = 'regieberichte';
-                        break;
-                    case 'regieantrag':
-                        storageSubDir = 'regieantraege';
-                        break;
-                    default:
-                        storageSubDir = 'berichte';
-                }
-
-                // Konstruiere den File-Server Storage-Pfad
-                const storagePath = `/app/storage/berichte/${storageSubDir}/${year}/${month}/${report.fileName}`;
-                possiblePaths.push(storagePath);
-
-                console.log(`🔍 Suche Datei für ${report.fileName}:`);
-                console.log(`   - Jahr: ${year}, Monat: ${month}`);
-                console.log(`   - Storage-Pfad: ${storagePath}`);
-            }
-
-            // 3. Alternative Pfade falls die obigen nicht funktionieren
-            possiblePaths.push(
-                `/app/storage/${report.fileName}`, // Direkt im Storage-Root
-                `/app/storage/berichte/${report.fileName}`, // Im berichte-Unterordner
-                `/tmp/berichte_temp/${report.fileName}` // Im temp-Verzeichnis
-            );
-
-            let fileDeleted = false;
-            let deletedPath = '';
-
-            // Durchsuche alle möglichen Pfade
-            for (const testPath of possiblePaths) {
-                if (testPath && fs.existsSync(testPath)) {
-                    try {
-                        fs.unlinkSync(testPath);
-                        console.log(`🗑️ Datei erfolgreich gelöscht: ${testPath}`);
-                        fileDeleted = true;
-                        deletedPath = testPath;
-                        break;
-                    } catch (fileError) {
-                        console.warn(`⚠️ Fehler beim Löschen der Datei: ${testPath} - ${fileError instanceof Error ? fileError.message : String(fileError)}`);
+                    if (deleteResult.success) {
+                        console.log(`✅ Datei erfolgreich über File-Server gelöscht: ${report.fileName}`);
+                    } else {
+                        console.warn(`⚠️ File-Server-Delete fehlgeschlagen: ${deleteResult.error}`);
                     }
-                } else {
-                    console.log(`❌ Datei nicht gefunden: ${testPath}`);
+                } catch (fileServerError) {
+                    console.warn(`⚠️ Fehler beim File-Server-Delete:`, fileServerError);
                 }
             }
 
-            if (!fileDeleted) {
-                console.warn(`⚠️ Datei konnte in keinem der folgenden Pfade gefunden werden:`);
-                possiblePaths.forEach(path => console.warn(`   - ${path}`));
+            // Fallback: Versuche lokales Löschen falls File-Server-Delete fehlgeschlagen ist
+            if (!fileDeleteSuccess && report.filePath) {
+                // Versuche verschiedene Pfad-Varianten
+                const possiblePaths = [];
 
-                // Versuche eine Suche im gesamten Storage-Verzeichnis
-                await this.searchAndDeleteFile(report.fileName);
+                // 1. Der lokale Pfad aus der Datenbank
+                if (report.filePath) {
+                    possiblePaths.push(report.filePath);
+                }
+
+                // 2. Konstruiere den Storage-Pfad basierend auf dem Dateinamen
+                if (report.fileName) {
+                    // Extrahiere das Datum aus dem Dateinamen
+                    const fileNameParts = report.fileName.split('_');
+                    let year, month;
+
+                    if (fileNameParts.length >= 4) {
+                        year = fileNameParts[2]; // YYYY
+                        month = fileNameParts[3]; // MM
+                    } else {
+                        // Fallback: verwende das Erstellungsdatum des Berichts
+                        const createdDate = new Date(report.createdAt);
+                        year = createdDate.getFullYear().toString();
+                        month = (createdDate.getMonth() + 1).toString().padStart(2, '0');
+                    }
+
+                    // Bestimme den korrekten Storage-Unterordner
+                    let storageSubDir = '';
+                    switch (report.documentType) {
+                        case 'bautagesbericht':
+                            storageSubDir = 'bautagesberichte';
+                            break;
+                        case 'regiebericht':
+                            storageSubDir = 'regieberichte';
+                            break;
+                        case 'regieantrag':
+                            storageSubDir = 'regieantraege';
+                            break;
+                        default:
+                            storageSubDir = 'berichte';
+                    }
+
+                    // Konstruiere den File-Server Storage-Pfad
+                    const storagePath = `/app/storage/berichte/${storageSubDir}/${year}/${month}/${report.fileName}`;
+                    possiblePaths.push(storagePath);
+                }
+
+                // 3. Alternative Pfade
+                possiblePaths.push(
+                    `/app/storage/${report.fileName}`,
+                    `/app/storage/berichte/${report.fileName}`,
+                    `/tmp/berichte_temp/${report.fileName}`
+                );
+
+                // Durchsuche alle möglichen Pfade
+                for (const testPath of possiblePaths) {
+                    if (testPath && fs.existsSync(testPath)) {
+                        try {
+                            fs.unlinkSync(testPath);
+                            console.log(`🗑️ Datei lokal gelöscht: ${testPath}`);
+                            fileDeleteSuccess = true;
+                            fileDeleteMessage = `Datei lokal gelöscht: ${testPath}`;
+                            break;
+                        } catch (fileError) {
+                            console.warn(`⚠️ Fehler beim lokalen Löschen: ${testPath}`, fileError);
+                        }
+                    }
+                }
+
+                // Wenn immer noch nicht gefunden, versuche rekursive Suche
+                if (!fileDeleteSuccess) {
+                    try {
+                        const found = await this.searchAndDeleteFile(report.fileName);
+                        if (found) {
+                            fileDeleteSuccess = true;
+                            fileDeleteMessage = 'Datei durch rekursive Suche gefunden und gelöscht';
+                        }
+                    } catch (searchError) {
+                        console.warn('Fehler bei rekursiver Suche:', searchError);
+                    }
+                }
             }
 
             // Lösche den Eintrag aus der Datenbank (auch wenn Datei nicht gefunden)
             const deleted = await this.dbManager.deleteReport(id);
 
             if (deleted) {
+                const successMessage = fileDeleteSuccess
+                    ? `Bericht und Datei erfolgreich gelöscht (${fileDeleteMessage})`
+                    : `Bericht aus Datenbank gelöscht (Datei war bereits entfernt oder nicht auffindbar)`;
+
                 console.log(`🗑️ Bericht aus Datenbank gelöscht: ${report.fileName} (ID: ${id})`);
                 return {
                     success: true,
-                    message: fileDeleted
-                        ? `Bericht und Datei erfolgreich gelöscht (${deletedPath})`
-                        : 'Bericht gelöscht (Datei war bereits entfernt oder nicht auffindbar)'
+                    message: successMessage
                 };
             } else {
                 return {

@@ -429,7 +429,11 @@ app.delete('/api/files/*', async (req, res) => {
         const requestedPath = req.params[0];
         const fullPath = path.join(STORAGE_BASE_DIR, requestedPath);
 
+        console.log(`🗑️ Delete-Request für: ${requestedPath}`);
+        console.log(`📁 Vollständiger Pfad: ${fullPath}`);
+
         if (!await fs.pathExists(fullPath)) {
+            console.log(`❌ Datei nicht gefunden: ${fullPath}`);
             return res.status(404).json({
                 success: false,
                 error: 'Datei nicht gefunden'
@@ -439,29 +443,110 @@ app.delete('/api/files/*', async (req, res) => {
         const stats = await fs.stat(fullPath);
 
         if (stats.isDirectory()) {
-            await fs.remove(fullPath);
-            console.log(`🗑️ Ordner gelöscht: ${fullPath}`);
-            res.json({
-                success: true,
-                message: `Ordner ${path.basename(fullPath)} wurde erfolgreich gelöscht`
-            });
-        } else {
-            await fs.remove(fullPath);
-            console.log(`🗑️ Datei gelöscht: ${fullPath}`);
-            res.json({
-                success: true,
-                message: `Datei ${path.basename(fullPath)} wurde erfolgreich gelöscht`
+            return res.status(400).json({
+                success: false,
+                error: 'Ordner-Löschung nicht erlaubt über diese API'
             });
         }
 
+        // Datei löschen
+        await fs.remove(fullPath);
+        console.log(`✅ Datei erfolgreich gelöscht: ${fullPath}`);
+
+        res.json({
+            success: true,
+            message: 'Datei erfolgreich gelöscht',
+            deletedPath: requestedPath,
+            deletedAt: new Date().toISOString()
+        });
+
     } catch (error) {
-        console.error('❌ Lösch-Fehler:', error);
+        console.error('❌ Delete-Fehler:', error);
         res.status(500).json({
             success: false,
-            error: 'Fehler beim Löschen'
+            error: error.message || 'Fehler beim Löschen der Datei'
         });
     }
 });
+
+// Delete by filename API (alternative endpoint)
+app.delete('/api/delete/:filename', async (req, res) => {
+    try {
+        const filename = req.params.filename;
+        console.log(`🔍 Suche Datei zum Löschen: ${filename}`);
+
+        // Rekursive Suche in allen Bereichen
+        const searchDirs = [
+            'berichte/bautagesberichte',
+            'berichte/regieberichte',
+            'berichte/regieantraege',
+            'berichte',
+            'documents'
+        ];
+
+        let foundPath = null;
+
+        for (const searchDir of searchDirs) {
+            const searchPath = path.join(STORAGE_BASE_DIR, searchDir);
+            if (await fs.pathExists(searchPath)) {
+                const found = await searchFileRecursively(searchPath, filename);
+                if (found) {
+                    foundPath = found;
+                    break;
+                }
+            }
+        }
+
+        if (!foundPath) {
+            console.log(`❌ Datei nicht gefunden: ${filename}`);
+            return res.status(404).json({
+                success: false,
+                error: 'Datei nicht gefunden'
+            });
+        }
+
+        // Datei löschen
+        await fs.remove(foundPath);
+        console.log(`✅ Datei erfolgreich gelöscht: ${foundPath}`);
+
+        res.json({
+            success: true,
+            message: 'Datei erfolgreich gelöscht',
+            deletedPath: foundPath,
+            filename: filename,
+            deletedAt: new Date().toISOString()
+        });
+
+    } catch (error) {
+        console.error('❌ Delete-Fehler:', error);
+        res.status(500).json({
+            success: false,
+            error: error.message || 'Fehler beim Löschen der Datei'
+        });
+    }
+});
+
+// Hilfsfunktion für rekursive Dateisuche
+async function searchFileRecursively(dir, filename) {
+    try {
+        const items = await fs.readdir(dir);
+
+        for (const item of items) {
+            const fullPath = path.join(dir, item);
+            const stats = await fs.stat(fullPath);
+
+            if (stats.isDirectory()) {
+                const result = await searchFileRecursively(fullPath, filename);
+                if (result) return result;
+            } else if (item === filename) {
+                return fullPath;
+            }
+        }
+    } catch (error) {
+        // Ignoriere Fehler bei der Verzeichnissuche
+    }
+    return null;
+}
 
 // Error Handler
 app.use((error, req, res, next) => {

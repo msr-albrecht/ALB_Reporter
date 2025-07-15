@@ -64,4 +64,48 @@ export class FileServerService {
             };
         }
     }
+
+    async deleteFile(fileName: string): Promise<{ success: boolean; message?: string; error?: string }> {
+        try {
+            console.log(`🗑️ Sende Delete-Request an File-Server für: ${fileName}`);
+
+            const response = await axios.delete(`${this.baseUrl}/api/delete/${fileName}`, {
+                timeout: 10000
+            });
+
+            if (response.data.success) {
+                console.log(`✅ Datei erfolgreich vom File-Server gelöscht: ${fileName}`);
+                console.log(`📁 Gelöschter Pfad: ${response.data.deletedPath}`);
+
+                return {
+                    success: true,
+                    message: 'Datei erfolgreich vom File-Server gelöscht'
+                };
+            } else {
+                console.warn(`⚠️ File-Server konnte Datei nicht löschen: ${response.data.error}`);
+                return {
+                    success: false,
+                    error: response.data.error || 'Unbekannter Fehler beim Löschen'
+                };
+            }
+
+        } catch (error) {
+            if (error && typeof error === 'object' && 'response' in error) {
+                const axiosError = error as any;
+                if (axiosError.response?.status === 404) {
+                    console.log(`📁 Datei nicht auf File-Server gefunden: ${fileName}`);
+                    return {
+                        success: true, // Behandle als erfolgreich, da Datei bereits weg ist
+                        message: 'Datei war bereits nicht mehr auf dem File-Server vorhanden'
+                    };
+                }
+            }
+
+            console.error('❌ Fehler beim Delete-Request an File-Server:', error);
+            return {
+                success: false,
+                error: error instanceof Error ? error.message : 'Delete-Request fehlgeschlagen'
+            };
+        }
+    }
 }
