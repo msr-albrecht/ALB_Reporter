@@ -31,18 +31,45 @@ export class RegieGenerator {
         }
 
         try {
+            // Prüfe ob es ein Datumsbereich ist (z.B. "2025-01-01 - 2025-01-01")
+            if (dateString.includes(' - ')) {
+                const [startDate, endDate] = dateString.split(' - ').map(d => d.trim());
+                const formattedStart = this.formatSingleDate(startDate);
+                const formattedEnd = this.formatSingleDate(endDate);
+
+                // Wenn Start- und Enddatum gleich sind, nur einmal anzeigen
+                if (formattedStart === formattedEnd) {
+                    return formattedStart;
+                }
+                return `${formattedStart} - ${formattedEnd}`;
+            }
+
+            // Einzelnes Datum formatieren
+            return this.formatSingleDate(dateString);
+        } catch (error) {
+            console.error('Error formatting date:', dateString, error);
+            return dateString;
+        }
+    }
+
+    private formatSingleDate(dateString: string): string {
+        if (!dateString || dateString.trim() === '') {
+            return '';
+        }
+
+        try {
             const date = new Date(dateString);
             if (isNaN(date.getTime())) {
                 return dateString;
             }
 
             return date.toLocaleDateString('de-DE', {
-                year: 'numeric',
+                day: '2-digit',
                 month: '2-digit',
-                day: '2-digit'
+                year: 'numeric'
             });
         } catch (error) {
-            console.error('Error formatting date:', dateString, error);
+            console.error('Error formatting single date:', dateString, error);
             return dateString;
         }
     }

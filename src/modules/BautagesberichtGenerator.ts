@@ -28,9 +28,9 @@ export class BautagesberichtGenerator {
     private formatDate(dateString: string): string {
         const date = new Date(dateString);
         return date.toLocaleDateString('de-DE', {
-            year: 'numeric',
+            day: '2-digit',
             month: '2-digit',
-            day: '2-digit'
+            year: 'numeric'
         });
     }
 
@@ -665,4 +665,3 @@ export class BautagesberichtGenerator {
         });
     }
 }
-

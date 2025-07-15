@@ -530,6 +530,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 successMessage.style.display = 'block';
                 successMessage.innerHTML = `<strong>✅ Erfolg!</strong> Bericht erfolgreich erstellt`;
                 form.reset();
+
+                // Berichtsnummer-Feld explizit zurücksetzen
+                document.getElementById('customReportNumber').value = '';
+
                 selectedMitarbeiter = [];
                 updateSelectedMitarbeiter();
 
