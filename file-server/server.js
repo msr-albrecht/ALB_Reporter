@@ -236,9 +236,9 @@ app.get('/api/info', (req, res) => {
 // File Upload
 app.post('/api/upload', upload.array('files', 10), async (req, res) => {
     try {
-        const { documentType, kuerzel, customPath } = req.body;
+        const { documentType, kuerzel, customPath, originalFileName } = req.body;
 
-        console.log(`📤 Upload-Request: documentType=${documentType}, kuerzel=${kuerzel}, files=${req.files?.length || 0}`);
+        console.log(`📤 Upload-Request: documentType=${documentType}, kuerzel=${kuerzel}, files=${req.files?.length || 0}, originalFileName=${originalFileName}`);
 
         if (!req.files || req.files.length === 0) {
             return res.status(400).json({
@@ -258,9 +258,11 @@ app.post('/api/upload', upload.array('files', 10), async (req, res) => {
                 // Verzeichnis erstellen
                 await fs.ensureDir(targetDir);
 
-                // Dateiname generieren
-                const fileName = generateFileName(file.originalname, documentType, kuerzel);
+                // Verwende den ursprünglichen Dateinamen wenn verfügbar, ansonsten generiere einen neuen
+                const fileName = originalFileName || generateFileName(file.originalname, documentType, kuerzel);
                 const targetPath = path.join(targetDir, fileName);
+
+                console.log(`📝 Verwende Dateinamen: ${fileName} (Original: ${file.originalname}, Custom: ${originalFileName})`);
 
                 // Datei verschieben
                 await fs.move(file.path, targetPath);

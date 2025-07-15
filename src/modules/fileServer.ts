@@ -24,7 +24,7 @@ export class FileServerService {
             formData.append('files', fs.createReadStream(filePath));
             formData.append('documentType', documentType);
             formData.append('kuerzel', 'AUTO');
-            formData.append('originalFileName', fileName);
+            formData.append('originalFileName', fileName); // Sende den gewünschten Dateinamen
 
             console.log(`📤 Sende Datei an File-Server: ${fileName}`);
 
