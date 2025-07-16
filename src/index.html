@@ -499,20 +499,40 @@ document.addEventListener('DOMContentLoaded', function() {
         const mitarbeiter = allMitarbeiter.find(m => m.name === mitarbeiterName);
         if (!mitarbeiter) return;
 
+        // Vollständige Wertsicherung vor Änderungen
+        const previousValues = {};
+        document.querySelectorAll('input[id^="arbeitsdatum_von_"], input[id^="startzeit_"], input[id^="endzeit_"], input[id^="wz_anreise_"], input[id^="wz_heimreise_"]').forEach(input => {
+            if (input.type === 'checkbox') {
+                previousValues[input.id] = input.checked;
+            } else {
+                previousValues[input.id] = input.value;
+            }
+        });
+
         // Füge den Mitarbeiter zur Liste hinzu
         selectedMitarbeiter.push({ name: mitarbeiter.name, qualifikation: mitarbeiter.qualifikation });
 
-        // Aktualisiere die Anzeige
-        updateSelectedMitarbeiterDisplay();
+        // Aktualisiere die Anzeige mit gespeicherten Werten
+        updateSelectedMitarbeiterDisplay(previousValues);
     }
 
     // Funktion um einen Mitarbeiter-Eintrag zu entfernen
     function removeMitarbeiterEintrag(mitarbeiterName, entryId) {
+        // Vollständige Wertsicherung vor Änderungen
+        const previousValues = {};
+        document.querySelectorAll('input[id^="arbeitsdatum_von_"], input[id^="startzeit_"], input[id^="endzeit_"], input[id^="wz_anreise_"], input[id^="wz_heimreise_"]').forEach(input => {
+            if (input.type === 'checkbox') {
+                previousValues[input.id] = input.checked;
+            } else {
+                previousValues[input.id] = input.value;
+            }
+        });
+
         // Entferne den Eintrag aus der selectedMitarbeiter Liste
         selectedMitarbeiter.splice(entryId, 1);
 
-        // Aktualisiere die Anzeige
-        updateSelectedMitarbeiterDisplay();
+        // Aktualisiere die Anzeige mit gespeicherten Werten
+        updateSelectedMitarbeiterDisplay(previousValues);
     }
 
     // Event Delegation für + und ✕ Buttons
