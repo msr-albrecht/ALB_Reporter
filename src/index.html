@@ -466,6 +466,27 @@ document.addEventListener('DOMContentLoaded', function() {
         selectedMitarbeiterInput.value = JSON.stringify(alleEintraege);
     }
 
+    // Funktion um einen zusätzlichen Mitarbeiter-Eintrag hinzuzufügen
+    function addMitarbeiterEintrag(mitarbeiterName) {
+        const mitarbeiter = allMitarbeiter.find(m => m.name === mitarbeiterName);
+        if (!mitarbeiter) return;
+
+        // Füge den Mitarbeiter zur Liste hinzu
+        selectedMitarbeiter.push({ name: mitarbeiter.name, qualifikation: mitarbeiter.qualifikation });
+
+        // Aktualisiere die Anzeige
+        updateSelectedMitarbeiterDisplay();
+    }
+
+    // Funktion um einen Mitarbeiter-Eintrag zu entfernen
+    function removeMitarbeiterEintrag(mitarbeiterName, entryId) {
+        // Entferne den Eintrag aus der selectedMitarbeiter Liste
+        selectedMitarbeiter.splice(entryId, 1);
+
+        // Aktualisiere die Anzeige
+        updateSelectedMitarbeiterDisplay();
+    }
+
     // Event Delegation für + und ✕ Buttons
     document.getElementById('selectedMitarbeiterList').addEventListener('click', function(e) {
         if (e.target.classList.contains('btn-add-mitarbeiter-eintrag')) {
