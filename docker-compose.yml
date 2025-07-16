@@ -14,7 +14,7 @@ services:
       - DOCKER_ENV=true
       - DB_PATH=/app/db/reports.db
       - PORT=4055
-      - FILE_SERVER_URL=http://file-server:3003
+      - FILE_SERVER_URL=https://file-server:3003
       - PUBLIC_FILE_SERVER_URL=https://139.162.154.60:3003
       - SERVER_URL=https://139.162.154.60:4055
       - ADMIN_KEY=admin123
