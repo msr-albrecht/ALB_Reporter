@@ -1,4 +1,4 @@
-import { Document, Paragraph, Table, TableRow, TableCell, WidthType, TextRun, BorderStyle, Packer, VerticalAlign, ImageRun, Header, AlignmentType } from 'docx';
+import { Document, Paragraph, Table, TableRow, TableCell, WidthType, TextRun, BorderStyle, Packer, VerticalAlign, ImageRun, Header, AlignmentType, Footer } from 'docx';
 import * as fs from 'fs';
 import * as path from 'path';
 import { ReportData } from './database';
@@ -89,38 +89,18 @@ export class BautagesberichtGenerator {
             );
 
             const header = this.createDocumentHeader();
+            const footer = this.createDocumentFooter();
 
             const doc = new Document({
                 sections: [{
                     headers: {
                         default: header,
                     },
+                    footers: {
+                        default: footer,
+                    },
                     children: [
                         mainTable,
-                        new Paragraph({
-                            children: [new TextRun({ text: "", size: 16 })],
-                            spacing: { after: 300 },
-                        }),
-                        new Paragraph({
-                            children: [
-                                new TextRun({
-                                    text: "Die Ware bleibt bis zur vollständigen Bezahlung unser Eigentum. Mit der Bestätigung dieses Berichtes wurde die Sache kontrolliert und mängelfrei übergeben! Es gelten die Geschäftsbedingungen der Elektrotechniker, herausgegeben von der Bundesinnung!",
-                                    size: 18,
-                                    italics: true,
-                                }),
-                            ],
-                            spacing: { before: 400 },
-                        }),
-                        new Paragraph({
-                            children: [
-                                new TextRun({
-                                    text: "Als Bautagesbericht wird keine Unterschrift des Kunden benötigt.",
-                                    size: 18,
-                                    italics: true,
-                                }),
-                            ],
-                            spacing: { before: 200 },
-                        }),
                     ],
                 }],
             });
@@ -217,6 +197,32 @@ export class BautagesberichtGenerator {
         });
     }
 
+    private createDocumentFooter(): Footer {
+        return new Footer({
+            children: [
+                new Paragraph({
+                    children: [
+                        new TextRun({
+                            text: "Die Ware bleibt bis zur vollständigen Bezahlung unser Eigentum. Mit der Bestätigung dieses Berichtes wurde die Sache kontrolliert und mängelfrei übergeben! Es gelten die Geschäftsbedingungen der Elektrotechniker, herausgegeben von der Bundesinnung!",
+                            size: 14,
+                            italics: true,
+                        }),
+                    ],
+                    spacing: { after: 200 },
+                }),
+                new Paragraph({
+                    children: [
+                        new TextRun({
+                            text: "Als Bautagesbericht wird keine Unterschrift des Kunden benötigt.",
+                            size: 14,
+                            italics: true,
+                        }),
+                    ],
+                }),
+            ],
+        });
+    }
+
     private async createMainTable(
         reportData: ReportData,
         requestData: CreateReportRequest,
@@ -236,7 +242,7 @@ export class BautagesberichtGenerator {
                 insideVertical: { style: BorderStyle.SINGLE, size: 8 },
             },
             rows: [
-                this.createHeaderRow(reportData, currentDate),
+                this.createHeaderRow(reportData, requestData),
                 this.createCustomerRow(requestData),
                 this.createCustomerAddressRow(requestData),
                 this.createConstructionSiteRow(requestData),
@@ -245,13 +251,15 @@ export class BautagesberichtGenerator {
                 ...await this.createEmployeeRows(mitarbeiterList, individualDates, individualTimes, requestData),
                 ...this.createEmptyEmployeeRows(mitarbeiterList),
                 this.createWorkDescriptionHeaderRow(),
-                this.createWorkDescriptionRow(mitarbeiterList),
-                this.createSignatureRow(currentDate, mitarbeiterList)
+                this.createWorkDescriptionRow(mitarbeiterList, requestData),
+                this.createSignatureRow(requestData, mitarbeiterList)
             ]
         });
     }
 
-    private createHeaderRow(reportData: ReportData, currentDate: Date): TableRow {
+    private createHeaderRow(reportData: ReportData, requestData: CreateReportRequest): TableRow {
+        // Verwende das Arbeitsdatum aus dem Request anstatt des heutigen Datums
+        const workDate = new Date(requestData.arbeitsdatum);
 
         return new TableRow({
             children: [
@@ -264,26 +272,15 @@ export class BautagesberichtGenerator {
                             children: [new TextRun({ text: `Nr. ${reportData.reportNumber.toString().padStart(3, '0')}`, bold: true, size: 24 })],
                         }),
                     ],
-                    columnSpan: 8,
+                    columnSpan: 14,
                 }),
                 new TableCell({
                     children: [
                         new Paragraph({
-                            children: [new TextRun({ text: "Betreff:", bold: true, size: 28 })],
+                            children: [new TextRun({ text: `Datum: ${this.formatDate(requestData.arbeitsdatum)}`, size: 22 })],
                         }),
                         new Paragraph({
-                            children: [new TextRun({ text: "", size: 22 })],
-                        }),
-                    ],
-                    columnSpan: 6,
-                }),
-                new TableCell({
-                    children: [
-                        new Paragraph({
-                            children: [new TextRun({ text: `Datum: ${this.formatDate(currentDate.toISOString())}`, size: 22 })],
-                        }),
-                        new Paragraph({
-                            children: [new TextRun({ text: `KW: ${this.getCurrentWeek(currentDate)}`, size: 22 })],
+                            children: [new TextRun({ text: `KW: ${this.getCurrentWeek(workDate)}`, size: 22 })],
                         }),
                     ],
                     columnSpan: 9,
@@ -319,14 +316,10 @@ export class BautagesberichtGenerator {
                             children: [new TextRun({ text: "Ort:", bold: true, size: 22 })],
                         }),
                         new Paragraph({
-                            children: [new TextRun({ text: requestData.strasseKunde, size: 22 })],
+                            children: [new TextRun({ text: `${requestData.strasseKunde}, ${requestData.ortKunde}`, size: 22 })],
                         })
                     ],
-                    columnSpan: 9,
-                }),
-                new TableCell({
-                    children: [new Paragraph({ children: [new TextRun({ text: requestData.ortKunde, size: 22 })] })],
-                    columnSpan: 10,
+                    columnSpan: 19,
                 }),
                 new TableCell({
                     children: [
@@ -352,7 +345,7 @@ export class BautagesberichtGenerator {
                             children: [new TextRun({ text: "Baustellenanschrift:", bold: true, size: 22 })],
                         }),
                         new Paragraph({
-                            children: [new TextRun({ text: requestData.baustelle, bold: true, size: 22 })],
+                            children: [new TextRun({ text: requestData.baustelle, size: 22 })],
                         }),
                     ],
                     columnSpan: 23,
@@ -370,22 +363,18 @@ export class BautagesberichtGenerator {
                             children: [new TextRun({ text: "Ort:", bold: true, size: 22 })],
                         }),
                         new Paragraph({
-                            children: [new TextRun({ text: requestData.strasseBaustelle, size: 22 })],
-                        })
+                            children: [new TextRun({ text: `${requestData.strasseBaustelle}, ${requestData.ortBaustelle}`, size: 22 })],
+                        }),
                     ],
-                    columnSpan: 9,
+                    columnSpan: 19,
                 }),
                 new TableCell({
                     children: [
                         new Paragraph({
-                            children: [new TextRun({ text: requestData.ortBaustelle, bold: true, size: 22 })],
+                            children: [new TextRun({
+                                text: "Verg.nr.", size: 22
+                            })]
                         }),
-                    ],
-                    columnSpan: 10,
-                }),
-                new TableCell({
-                    children: [
-                        new Paragraph({ children: [new TextRun({ text: "Verg.nr.", size: 22 })] }),
                         new Paragraph({
                             children: [new TextRun({ text: requestData.vergNr, size: 22 })],
                         }),
@@ -438,9 +427,21 @@ export class BautagesberichtGenerator {
         individualTimes: {[key: string]: string},
         requestData: CreateReportRequest
     ): Promise<TableRow[]> {
-        return await Promise.all(mitarbeiterList.map(async (mitarbeiter: any) => {
-            const employeeDate = individualDates[mitarbeiter.name] || requestData.arbeitsdatum;
-            const employeeTime = individualTimes[mitarbeiter.name] || requestData.arbeitszeit;
+        return await Promise.all(mitarbeiterList.map(async (mitarbeiter: any, index: number) => {
+            // Für Bautagesberichte: Globales Datum verwenden (arbeitsdatum)
+            // Für andere Dokumenttypen: Individuelles Datum verwenden
+            const employeeKey = `${mitarbeiter.name}_${index}`;
+            let employeeDate: string;
+
+            if (requestData.documentType === 'bautagesbericht') {
+                // Bei Bautagesberichten: Verwende das globale arbeitsdatum für alle Mitarbeiter
+                employeeDate = requestData.arbeitsdatum;
+            } else {
+                // Bei anderen Dokumenttypen: Verwende individuelles Datum oder Fallback
+                employeeDate = individualDates[employeeKey] || requestData.arbeitsdatum;
+            }
+
+            const employeeTime = individualTimes[employeeKey] || requestData.arbeitszeit;
             const timeWorked = this.calculateDuration(employeeTime);
 
             const weatherData = await this.weatherService.getWeatherForDateAndLocation(employeeDate, requestData.ortBaustelle);
@@ -515,7 +516,10 @@ export class BautagesberichtGenerator {
         });
     }
 
-    private createWorkDescriptionRow(mitarbeiterList: any[]): TableRow {
+    private createWorkDescriptionRow(mitarbeiterList: any[], requestData: CreateReportRequest): TableRow {
+        // Extrahiere die Textdaten aus dem Request
+        const regieTextDataFromRequest = requestData.regieTextData || {};
+
         return new TableRow({
             children: [
                 new TableCell({
@@ -526,37 +530,26 @@ export class BautagesberichtGenerator {
                         new Paragraph({
                             children: [new TextRun({ text: "", size: 22 })],
                         }),
-                        new Paragraph({
-                            children: [new TextRun({ text: "", size: 22 })],
-                        }),
-                        new Paragraph({
-                            children: [new TextRun({ text: "", size: 16 })],
-                        }),
-                        new Paragraph({
-                            children: [new TextRun({ text: "Durchgeführte Arbeiten:", bold: true, size: 22 })],
-                        }),
-                        ...this.createWorkDescriptionParagraphs(mitarbeiterList),
+
+                        ...this.createBautagesTextParagraphs(regieTextDataFromRequest, 'durchgefuehrte_arbeiten'),
                     ],
                     columnSpan: 10,
                     verticalAlign: VerticalAlign.TOP,
                 }),
                 new TableCell({
                     children: [
-                        new Paragraph({
-                            children: [new TextRun({ text: "Behinderungen/Erschwernisse/Begehungen/Abnahme", underline: { type: "single" }, size: 20 })],
-                        }),
-                        new Paragraph({ children: [new TextRun({ text: "", size: 16 })] }),
-                        new Paragraph({ children: [new TextRun({ text: "", size: 16 })] }),
-                        new Paragraph({
-                            children: [new TextRun({ text: "Regieleistungen / Leistungsänderungen:", underline: { type: "single" }, size: 20 })],
-                        }),
-                        new Paragraph({ children: [new TextRun({ text: "", size: 16 })] }),
-                        new Paragraph({ children: [new TextRun({ text: "", size: 16 })] }),
+                        // Bedenkanmeldung oben (mittleres Feld nach oben bewegt)
                         new Paragraph({
                             children: [new TextRun({ text: "Bedenkanmeldung/Hinweise an den AG:", underline: { type: "single" }, size: 20 })],
                         }),
-                        new Paragraph({ children: [new TextRun({ text: "", size: 16 })] }),
-                        this.createMaterialTable()
+                        ...this.createBautagesTextParagraphs(regieTextDataFromRequest, 'bedenkanmeldung'),
+
+                        // Behinderungen in der Mitte
+                        new Paragraph({
+                            children: [new TextRun({ text: "Behinderungen/Erschwernisse/Begehungen/Abnahme", underline: { type: "single" }, size: 20 })],
+                        }),
+                        ...this.createBautagesTextParagraphs(regieTextDataFromRequest, 'behinderungen'),
+
                     ],
                     columnSpan: 13,
                     verticalAlign: VerticalAlign.TOP,
@@ -565,75 +558,28 @@ export class BautagesberichtGenerator {
         });
     }
 
-    private createWorkDescriptionParagraphs(mitarbeiterList: any[]): Paragraph[] {
-        if (mitarbeiterList.length === 0) {
+    // Neue Hilfsmethode für Bautagesberichte (ähnlich wie bei RegieGenerator)
+    private createBautagesTextParagraphs(regieTextData: any, field: string): Paragraph[] {
+        if (regieTextData[field]) {
             return [
-                new Paragraph({
-                    children: [new TextRun({ text: "• Keine Tätigkeiten ausgeführt.", size: 20 })],
-                })
+                new Paragraph({ children: [new TextRun({ text: regieTextData[field], size: 18 })] }),
+                new Paragraph({ children: [new TextRun({ text: "", size: 16 })] }),
             ];
         } else {
             return [
-                new Paragraph({
-                    children: [new TextRun({ text: "", size: 20 })],
-                })
+                new Paragraph({ children: [new TextRun({ text: "", size: 16 })] }),
+                new Paragraph({ children: [new TextRun({ text: "", size: 16 })] })
             ];
         }
     }
 
-    private createMaterialTable(): Table {
-        return new Table({
-            width: { size: 100, type: WidthType.PERCENTAGE },
-            borders: {
-                top: { style: BorderStyle.SINGLE, size: 8 },
-                bottom: { style: BorderStyle.SINGLE, size: 8 },
-                left: { style: BorderStyle.SINGLE, size: 8 },
-                right: { style: BorderStyle.SINGLE, size: 8 },
-                insideHorizontal: { style: BorderStyle.SINGLE, size: 8 },
-                insideVertical: { style: BorderStyle.SINGLE, size: 8 },
-            },
-            rows: [
-                new TableRow({
-                    children: [
-                        new TableCell({
-                            children: [new Paragraph({ children: [new TextRun({ text: "Menge", bold: true, size: 22 })] })],
-                        }),
-                        new TableCell({
-                            children: [new Paragraph({ children: [new TextRun({ text: "EH", bold: true, size: 22 })] })],
-                            columnSpan: 2,
-                        }),
-                        new TableCell({
-                            children: [new Paragraph({ children: [new TextRun({ text: "Materialbezeichnung", bold: true, size: 22 })] })],
-                            columnSpan: 10,
-                        }),
-                    ]
-                }),
-                new TableRow({
-                    children: [
-                        new TableCell({
-                            children: [new Paragraph({ children: [new TextRun({ text: "1", size: 20 })] })],
-                        }),
-                        new TableCell({
-                            children: [new Paragraph({ children: [new TextRun({ text: "STK", size: 20 })] })],
-                            columnSpan: 2,
-                        }),
-                        new TableCell({
-                            children: [new Paragraph({ children: [new TextRun({ text: "Diverse Materialien", size: 20 })] })],
-                            columnSpan: 10,
-                        }),
-                    ],
-                }),
-            ]
-        });
-    }
-
-    private createSignatureRow(currentDate: Date, mitarbeiterList: any[]): TableRow {
+    private createSignatureRow(requestData: CreateReportRequest, mitarbeiterList: any[]): TableRow {
         return new TableRow({
             children: [
                 new TableCell({
                     children: [
                         new Paragraph({
-                            children: [new TextRun({ text: `Datum: ${this.formatDate(currentDate.toISOString())}`, size: 20 })],
+                            children: [new TextRun({ text: `Datum: ${this.formatDate(requestData.arbeitsdatum)}`, size: 20 })],
                         }),
 
                     ],

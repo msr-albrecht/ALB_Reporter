@@ -1,6 +1,7 @@
 import * as fs from 'fs';
 import axios from 'axios';
 import FormData from 'form-data';
+import https from 'https';
 
 export interface UploadResult {
     success: boolean;
@@ -11,11 +12,22 @@ export interface UploadResult {
 
 export class FileServerService {
     private baseUrl: string;
+    private httpsAgent: https.Agent;
 
     constructor() {
         this.baseUrl = process.env.FILE_SERVER_URL || 'http://localhost:3003';
+
+        // HTTPS Agent für selbstsignierte Zertifikate (nur für lokale Entwicklung)
+        this.httpsAgent = new https.Agent({
+            rejectUnauthorized: false, // Akzeptiere selbstsignierte Zertifikate
+            requestCert: false
+        });
+
         console.log('📁 File-Server-Integration aktiviert');
         console.log(`🌐 File-Server-URL: ${this.baseUrl}`);
+        if (this.baseUrl.startsWith('https://localhost')) {
+            console.log('🔓 SSL-Verifikation für localhost deaktiviert (selbstsignierte Zertifikate)');
+        }
     }
 
     async uploadFile(filePath: string, fileName: string, documentType: string = 'document'): Promise<UploadResult> {
@@ -28,12 +40,19 @@ export class FileServerService {
 
             console.log(`📤 Sende Datei an File-Server: ${fileName}`);
 
-            const response = await axios.post(`${this.baseUrl}/api/upload`, formData, {
+            const axiosConfig: any = {
                 headers: {
                     ...formData.getHeaders()
                 },
                 timeout: 30000
-            });
+            };
+
+            // Verwende HTTPS Agent nur für HTTPS URLs
+            if (this.baseUrl.startsWith('https://')) {
+                axiosConfig.httpsAgent = this.httpsAgent;
+            }
+
+            const response = await axios.post(`${this.baseUrl}/api/upload`, formData, axiosConfig);
 
             if (response.data.success && response.data.files && response.data.files.length > 0) {
                 const uploadedFile = response.data.files[0];
@@ -69,9 +88,16 @@ export class FileServerService {
         try {
             console.log(`🗑️ Sende Delete-Request an File-Server für: ${fileName}`);
 
-            const response = await axios.delete(`${this.baseUrl}/api/delete/${fileName}`, {
+            const axiosConfig: any = {
                 timeout: 10000
-            });
+            };
+
+            // Verwende HTTPS Agent nur für HTTPS URLs
+            if (this.baseUrl.startsWith('https://')) {
+                axiosConfig.httpsAgent = this.httpsAgent;
+            }
+
+            const response = await axios.delete(`${this.baseUrl}/api/delete/${fileName}`, axiosConfig);
 
             if (response.data.success) {
                 console.log(`✅ Datei erfolgreich vom File-Server gelöscht: ${fileName}`);

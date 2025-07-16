@@ -852,6 +852,261 @@ input:focus, select:focus, textarea:focus {
     font-size: 1.1rem;
 }
 
+.mitarbeiter-multiblock {
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 12px 16px;
+    margin-bottom: 18px;
+    background: #fafbfc;
+    position: relative;
+}
+
+.mitarbeiter-multiblock:hover {
+    border-color: #ccc;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.styled-plus {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: #fff;
+    border: none;
+    border-radius: 50%;
+    width: 32px;
+    height: 32px;
+    font-size: 22px;
+    font-weight: bold;
+    cursor: pointer;
+    margin-left: 8px;
+    box-shadow: 0 2px 8px rgba(102,126,234,0.08);
+    transition: background 0.2s, transform 0.1s;
+    vertical-align: middle;
+}
+.styled-plus:hover {
+    background: linear-gradient(135deg, #764ba2, #667eea);
+    transform: scale(1.08);
+}
+
+.btn-remove-mitarbeiter-eintrag {
+    background: #dc3545;
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 28px;
+    height: 28px;
+    font-size: 16px;
+    cursor: pointer;
+    margin-left: 10px;
+    transition: all 0.2s ease;
+}
+
+.btn-remove-mitarbeiter-eintrag:hover {
+    background: #c82333;
+    transform: scale(1.1);
+}
+
+/* WZ Checkbox-Styling für Anreise/Heimreise */
+.wz-checkbox-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-top: 8px;
+    padding: 8px 12px;
+    background: #f8f9fa;
+    border-radius: 6px;
+    border: 1px solid #e9ecef;
+}
+
+.wz-checkbox-wrapper label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: #495057;
+    cursor: pointer;
+    margin: 0;
+}
+
+.wz-checkbox-anreise,
+.wz-checkbox-heimreise {
+    width: 16px;
+    height: 16px;
+    accent-color: #007bff;
+    cursor: pointer;
+}
+
+.wz-checkbox-wrapper label:hover {
+    color: #007bff;
+}
+
+/* Verbessertes Styling für Mehrfacheinträge */
+.mitarbeiter-multiblock {
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 12px 16px;
+    margin-bottom: 18px;
+    background: #fafbfc;
+    position: relative;
+}
+
+.mitarbeiter-multiblock:hover {
+    border-color: #ccc;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.btn-remove-mitarbeiter-eintrag {
+    background: #dc3545;
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 28px;
+    height: 28px;
+    font-size: 16px;
+    cursor: pointer;
+    margin-left: 10px;
+    transition: all 0.2s ease;
+}
+
+.btn-remove-mitarbeiter-eintrag:hover {
+    background: #c82333;
+    transform: scale(1.1);
+}
+
+/* Material section styles */
+.material-section {
+    margin: 20px 0;
+    padding: 20px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    border: 1px solid #e9ecef;
+}
+
+.material-title {
+    margin: 0 0 15px 0;
+    color: #495057;
+    font-size: 18px;
+    font-weight: 600;
+}
+
+.material-list {
+    margin-bottom: 15px;
+}
+
+.material-item {
+    margin-bottom: 15px;
+    padding: 15px;
+    background: white;
+    border-radius: 6px;
+    border: 1px solid #dee2e6;
+}
+
+.material-inputs {
+    display: flex;
+    gap: 15px;
+    align-items: end;
+    flex-wrap: wrap;
+}
+
+.material-input-group {
+    flex: 1;
+    min-width: 120px;
+}
+
+.material-input-group.material-description {
+    flex: 2;
+    min-width: 200px;
+}
+
+.material-input-group label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: 500;
+    color: #495057;
+    font-size: 14px;
+}
+
+.material-input-group input {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    font-size: 14px;
+}
+
+.material-actions {
+    display: flex;
+    align-items: center;
+}
+
+.btn-remove-material {
+    background: #dc3545;
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 30px;
+    height: 30px;
+    cursor: pointer;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn-remove-material:hover {
+    background: #c82333;
+}
+
+.btn-add-material {
+    background: #28a745;
+    color: white;
+    border: none;
+    padding: 10px 15px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.btn-add-material:hover {
+    background: #218838;
+}
+
+/* Regie specific styles */
+.regie-main-fields {
+    margin: 20px 0;
+}
+
+.regie-text-fields {
+    margin: 20px 0;
+    padding: 20px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    border: 1px solid #e9ecef;
+}
+
+.regie-title {
+    margin: 0 0 15px 0;
+    color: #495057;
+    font-size: 18px;
+    font-weight: 600;
+}
+
+/* Bautagesbericht specific styles */
+.bautages-text-fields {
+    margin: 20px 0;
+    padding: 20px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    border: 1px solid #e9ecef;
+}
+
+.bautages-title {
+    margin: 0 0 15px 0;
+    color: #495057;
+    font-size: 18px;
+    font-weight: 600;
+}
+
 @media (max-width: 768px) {
     .container {
         padding: 20px;

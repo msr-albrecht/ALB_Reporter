@@ -210,12 +210,14 @@ export class RegieGenerator {
         try {
             const mitarbeiterList = JSON.parse(reportData.mitarbeiter);
             const documentTitle = isRegieantrag ? "Regieantrag" : "Regiebericht";
-            const documentSubject = isRegieantrag ? "Antrag auf Regiearbeiten" : "";
+
+            // Betreff aus regieTextData verwenden, falls vorhanden
+            const regieTextDataFromRequest = requestData.regieTextData || {};
+            const documentSubject = (regieTextDataFromRequest as any).betreff || (isRegieantrag ? "Antrag auf Regiearbeiten" : "");
 
             const individualDates = requestData.individualDates || {};
             const individualTimes = requestData.individualTimes || {};
             const wzDataFromRequest = requestData.wzData || {};
-            const regieTextDataFromRequest = requestData.regieTextData || {};
             const materials = requestData.materials || [];
 
             const csvData = await this.csvReader.readCsvData();
@@ -241,41 +243,21 @@ export class RegieGenerator {
             );
 
             const header = this.createDocumentHeader();
+            const footer = this.createDocumentFooter(isRegieantrag);
 
             const doc = new Document({
                 sections: [{
                     headers: {
                         default: header,
                     },
+                    footers: {
+                        default: footer,
+                    },
                     children: [
                         mainTable,
                         new Paragraph({
                             children: [new TextRun({ text: "", size: 16 })],
                             spacing: { after: 300 },
-                        }),
-                        new Paragraph({
-                            children: [
-                                new TextRun({
-                                    text: isRegieantrag
-                                        ? "Hinweis: Regieleistungen bedürfen der vorherigen schriftlichen Genehmigung durch den Auftraggeber. Ohne Genehmigung können keine Regiearbeiten durchgeführt werden."
-                                        : "Die Ware bleibt bis zur vollständigen Bezahlung unser Eigentum. Mit der Bestätigung dieses Berichtes wurde die Sache kontrolliert und mängelfrei übergeben! Es gelten die Geschäftsbedingungen der Elektrotechniker, herausgegeben von der Bundesinnung!",
-                                    size: 18,
-                                    italics: true,
-                                }),
-                            ],
-                            spacing: { before: 400 },
-                        }),
-                        new Paragraph({
-                            children: [
-                                new TextRun({
-                                    text: isRegieantrag
-                                        ? "Nach Genehmigung ist ein separater Regiebericht zu erstellen."
-                                        : "Für Regieleistungen ist die Unterschrift des Kunden erforderlich.",
-                                    size: 18,
-                                    italics: true,
-                                }),
-                            ],
-                            spacing: { before: 200 },
                         }),
                     ],
                 }],
@@ -368,6 +350,37 @@ export class RegieGenerator {
                             ],
                         }),
                     ],
+                }),
+            ],
+        });
+    }
+
+    private createDocumentFooter(isRegieantrag: boolean): Header {
+        return new Header({
+            children: [
+                new Paragraph({
+                    children: [
+                        new TextRun({
+                            text: isRegieantrag
+                                ? "Hinweis: Regieleistungen bedürfen der vorherigen schriftlichen Genehmigung durch den Auftraggeber. Ohne Genehmigung können keine Regiearbeiten durchgeführt werden."
+                                : "Die Ware bleibt bis zur vollständigen Bezahlung unser Eigentum. Mit der Bestätigung dieses Berichtes wurde die Sache kontrolliert und mängelfrei übergeben! Es gelten die Geschäftsbedingungen der Elektrotechniker, herausgegeben von der Bundesinnung!",
+                            size: 14,
+                            italics: true,
+                        }),
+                    ],
+                    spacing: { before: 200, after: 100 },
+                }),
+                new Paragraph({
+                    children: [
+                        new TextRun({
+                            text: isRegieantrag
+                                ? "Nach Genehmigung ist ein separater Regiebericht zu erstellen."
+                                : "Für Regieleistungen ist die Unterschrift des Kunden erforderlich.",
+                            size: 14,
+                            italics: true,
+                        }),
+                    ],
+                    spacing: { before: 100 },
                 }),
             ],
         });
@@ -481,14 +494,10 @@ export class RegieGenerator {
                             children: [new TextRun({ text: "Ort:", bold: true, size: 22 })],
                         }),
                         new Paragraph({
-                            children: [new TextRun({ text: requestData.strasseKunde, size: 22 })],
+                            children: [new TextRun({ text: `${requestData.strasseKunde}, ${requestData.ortKunde}`, size: 22 })],
                         })
                     ],
-                    columnSpan: 9,
-                }),
-                new TableCell({
-                    children: [new Paragraph({ children: [new TextRun({ text: requestData.ortKunde, size: 22 })] })],
-                    columnSpan: 10,
+                    columnSpan: 19,
                 }),
                 new TableCell({
                     children: [
@@ -514,7 +523,7 @@ export class RegieGenerator {
                             children: [new TextRun({ text: "Baustellenanschrift:", bold: true, size: 22 })],
                         }),
                         new Paragraph({
-                            children: [new TextRun({ text: requestData.baustelle, bold: true, size: 22 })],
+                            children: [new TextRun({ text: requestData.baustelle, size: 22 })],
                         }),
                     ],
                     columnSpan: 23,
@@ -529,18 +538,13 @@ export class RegieGenerator {
                 new TableCell({
                     children: [
                         new Paragraph({
-                            children: [new TextRun({ text: `Ort: ${requestData.strasseBaustelle}`, bold: true, size: 22 })],
+                            children: [new TextRun({ text: "Ort:", bold: true, size: 22 })],
                         }),
-                    ],
-                    columnSpan: 9,
-                }),
-                new TableCell({
-                    children: [
                         new Paragraph({
-                            children: [new TextRun({ text: requestData.ortBaustelle, bold: true, size: 22 })],
+                            children: [new TextRun({ text: `${requestData.strasseBaustelle}, ${requestData.ortBaustelle}`, size: 22 })],
                         }),
                     ],
-                    columnSpan: 10,
+                    columnSpan: 19,
                 }),
                 new TableCell({
                     children: [
@@ -564,10 +568,11 @@ export class RegieGenerator {
             children: [
                 new TableCell({
                     children: [new Paragraph({ children: [new TextRun({ text: "Datum:", size: 22 })] })],
+                    columnSpan: 1,
                 }),
                 new TableCell({
-                    children: [new Paragraph({ children: [new TextRun({ text: "Name", bold: true, size: 26 })] })],
-                    columnSpan: 7,
+                    children: [new Paragraph({ children: [new TextRun({ text: "Name", size: 26 })] })],
+                    columnSpan: 9,
                 }),
                 new TableCell({
                     children: [new Paragraph({ children: [new TextRun({ text: "Qualifikation", size: 22 })] })],
@@ -585,27 +590,13 @@ export class RegieGenerator {
                         new Paragraph({ children: [new TextRun({ text: "Beginn", size: 22 })] }),
                         new Paragraph({ children: [new TextRun({ text: "Ende", size: 22 })] }),
                     ],
-                    columnSpan: 2,
+                    columnSpan: 5,
                 }),
                 new TableCell({
                     children: [
-                        new Paragraph({ children: [new TextRun({ text: "WZ", size: 22 })] }),
                         new Paragraph({ children: [new TextRun({ text: "KM", size: 22 })] }),
                     ],
-                    columnSpan: 2,
-                }),
-                new TableCell({
-                    children: [
-                        new Paragraph({ children: [new TextRun({ text: "Üstd.", size: 22 })] }),
-                        new Paragraph({ children: [new TextRun({ text: "50%", size: 22 })] }),
-                    ],
-                    columnSpan: 3,
-                }),
-                new TableCell({
-                    children: [
-                        new Paragraph({ children: [new TextRun({ text: "Üstd.", size: 22 })] }),
-                        new Paragraph({ children: [new TextRun({ text: "100%", size: 22 })] }),
-                    ],
+                    columnSpan: 1,
                 }),
             ],
         });
@@ -620,23 +611,36 @@ export class RegieGenerator {
         wzLookup: {[key: string]: string},
         reportData: ReportData
     ): TableRow[] {
+        // Anpassung: Jeder Eintrag in mitarbeiterList hat jetzt eine id (z.B. {id, name, qualifikation})
         return mitarbeiterList.map((mitarbeiter: any) => {
-            const employeeDate = individualDates[mitarbeiter.name] || requestData.arbeitsdatum;
-            const employeeTime = individualTimes[mitarbeiter.name] || requestData.arbeitszeit;
+            // Schlüssel für die individuellen Daten
+            const key = `${mitarbeiter.name}_${mitarbeiter.id !== undefined ? mitarbeiter.id : ''}`;
+            const employeeDate = individualDates[key] || requestData.arbeitsdatum;
+            const employeeTime = individualTimes[key] || requestData.arbeitszeit;
             const regieTime = this.calculateDuration(employeeTime, employeeDate);
 
-            const shouldIncludeWZ = wzDataFromRequest[mitarbeiter.name]?.includeWZ || false;
-            const employeeKuerzel = wzDataFromRequest[mitarbeiter.name]?.kuerzel || reportData.kuerzel;
-            const wzValue = shouldIncludeWZ ? (wzLookup[employeeKuerzel] || '') : '';
+            // NEU: Anreise/Heimreise-Checkboxen auswerten
+            const wzInfo = wzDataFromRequest[key] || {};
+            const anreise = !!wzInfo.anreise;
+            const heimreise = !!wzInfo.heimreise;
+            const employeeKuerzel = wzInfo.kuerzel || reportData.kuerzel;
+            let wzValue = '';
+            if (anreise || heimreise) {
+                const km = parseFloat(wzLookup[employeeKuerzel] || '');
+                if (!isNaN(km)) {
+                    wzValue = (anreise && heimreise) ? (km * 2).toString() : km.toString();
+                }
+            }
 
             return new TableRow({
                 children: [
                     new TableCell({
                         children: [new Paragraph({ children: [new TextRun({ text: this.formatDate(employeeDate), size: 20 })] })],
+                        columnSpan: 1,
                     }),
                     new TableCell({
                         children: [new Paragraph({ children: [new TextRun({ text: mitarbeiter.name, size: 20 })] })],
-                        columnSpan: 7,
+                        columnSpan: 9,
                     }),
                     new TableCell({
                         children: [new Paragraph({ children: [new TextRun({ text: mitarbeiter.qualifikation, size: 20 })] })],
@@ -648,19 +652,12 @@ export class RegieGenerator {
                     }),
                     new TableCell({
                         children: [new Paragraph({ children: [new TextRun({ text: employeeTime, size: 20 })] })],
-                        columnSpan: 2,
+                        columnSpan: 5,
                     }),
                     new TableCell({
                         children: [new Paragraph({ children: [new TextRun({ text: wzValue, size: 20 })] })],
-                        columnSpan: 2,
-                    }),
-                    new TableCell({
-                        children: [new Paragraph({ children: [new TextRun({ text: "", size: 20 })] })],
-                        columnSpan: 3,
-                    }),
-                    new TableCell({
-                        children: [new Paragraph({ children: [new TextRun({ text: "", size: 20 })] })],
-                    }),
+                        columnSpan: 1,
+                    })
                 ],
             });
         });
@@ -669,14 +666,13 @@ export class RegieGenerator {
     private createEmptyEmployeeRows(mitarbeiterList: any[]): TableRow[] {
         return Array(Math.max(0, 4 - mitarbeiterList.length)).fill(0).map(() => new TableRow({
             children: [
-                new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "", size: 20 })] })] }),
-                new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "", size: 20 })] })], columnSpan: 7 }),
+                new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "", size: 20 })] })], columnSpan: 1 }),
+                new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "", size: 20 })] })], columnSpan: 9 }),
                 new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "", size: 20 })] })], columnSpan: 3 }),
                 new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "", size: 20 })] })], columnSpan: 4 }),
-                new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "", size: 20 })] })], columnSpan: 2 }),
-                new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "", size: 20 })] })], columnSpan: 2}),
-                new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "", size: 20 })] })], columnSpan: 3 }),
-                new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "", size: 20 })] })] }),
+                new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "", size: 20 })] })], columnSpan: 5 }),
+                new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "", size: 20 })] })], columnSpan: 1}),
+
             ],
         }));
     }
@@ -687,7 +683,7 @@ export class RegieGenerator {
                 new TableCell({
                     children: [
                         new Paragraph({
-                            children: [new TextRun({ text: "Leistungsbeschreibung", bold: true, size: 24 })],
+                            children: [new TextRun({ text: "Regieleistungen/Leistungsänderung", bold: true, size: 24 })],
                         }),
                     ],
                     columnSpan: 10,
@@ -715,21 +711,9 @@ export class RegieGenerator {
                 new TableCell({
                     children: [
                         new Paragraph({
-                            children: [new TextRun({ text: "Anlage:", size: 22 })],
-                        }),
-                        new Paragraph({
-                            children: [new TextRun({ text: "Etage:", size: 22 })],
-                        }),
-                        new Paragraph({
-                            children: [new TextRun({ text: "Achse:", size: 22 })],
-                        }),
-                        new Paragraph({
                             children: [new TextRun({ text: "", size: 16 })],
                         }),
-                        new Paragraph({
-                            children: [new TextRun({ text: "Durchgeführte Arbeiten:", bold: true, size: 22 })],
-                        }),
-                        ...this.createWorkDescriptionParagraphs(requestData, mitarbeiterList),
+                        ...this.createRegieTextParagraphs(regieTextDataFromRequest, 'regieleistungen')
                     ],
                     columnSpan: 10,
                     verticalAlign: VerticalAlign.TOP,
@@ -741,10 +725,6 @@ export class RegieGenerator {
                         }),
                         ...this.createRegieTextParagraphs(regieTextDataFromRequest, 'behinderungen'),
                         new Paragraph({
-                            children: [new TextRun({ text: "Regieleistungen / Leistungsänderungen:", underline: { type: "single" }, size: 20 })],
-                        }),
-                        ...this.createRegieTextParagraphs(regieTextDataFromRequest, 'regieleistungen'),
-                        new Paragraph({
                             children: [new TextRun({ text: "Bedenkanmeldung/Hinweise an den AG:", underline: { type: "single" }, size: 20 })],
                         }),
                         ...this.createRegieTextParagraphs(regieTextDataFromRequest, 'bedenkanmeldung'),
@@ -755,28 +735,6 @@ export class RegieGenerator {
                 }),
             ],
         });
-    }
-
-    private createWorkDescriptionParagraphs(requestData: CreateReportRequest, mitarbeiterList: any[]): Paragraph[] {
-        if (requestData.zusatzInformationen && requestData.zusatzInformationen.trim()) {
-            return [
-                new Paragraph({
-                    children: [new TextRun({ text: `• ${requestData.zusatzInformationen}`, size: 20 })],
-                })
-            ];
-        } else if (mitarbeiterList.length > 0) {
-            return [
-                new Paragraph({
-                    children: [new TextRun({ text: `• Kunde: ${requestData.kunde}`, size: 20 })],
-                })
-            ];
-        } else {
-            return [
-                new Paragraph({
-                    children: [new TextRun({ text: "• Keine Tätigkeiten ausgeführt.", size: 20 })],
-                })
-            ];
-        }
     }
 
     private createRegieTextParagraphs(regieTextData: any, field: string): Paragraph[] {

@@ -583,16 +583,10 @@ app.use('*', (req, res) => {
     });
 });
 
-// Server starten - Dual-Mode: HTTP intern, HTTPS extern
-const httpPort = 3002; // Interne HTTP-Kommunikation
-const httpsPort = PORT; // Externe HTTPS-Kommunikation
+// Server starten - Nur HTTPS für lokale Entwicklung
+const httpsPort = PORT; // Konfigurierter Port aus .env
 
-// HTTP Server für interne Container-Kommunikation
-app.listen(httpPort, HOST, () => {
-    console.log(`🔓 HTTP Server (intern) läuft auf Port ${httpPort}`);
-});
-
-// HTTPS Server für externe Zugriffe
+// HTTPS Server starten
 const sslOptions = createSelfSignedCertificate();
 https.createServer(sslOptions, app).listen(httpsPort, HOST, () => {
     const serverUrl = process.env.PUBLIC_FILE_SERVER_URL || `https://${HOST}:${httpsPort}`;
@@ -600,8 +594,7 @@ https.createServer(sslOptions, app).listen(httpsPort, HOST, () => {
     console.log('🚀 ===============================================');
     console.log('🗂️  BERICHTE FILE SERVER GESTARTET');
     console.log('🚀 ===============================================');
-    console.log(`🔒 HTTPS Server (extern) läuft auf Port ${httpsPort}`);
-    console.log(`🔓 HTTP Server (intern) läuft auf Port ${httpPort}`);
+    console.log(`🔒 HTTPS Server läuft auf Port ${httpsPort}`);
     console.log(`🏠 Host: ${HOST}`);
     console.log(`📁 Storage: ${STORAGE_BASE_DIR}`);
     console.log(`🔗 Health Check: ${serverUrl}/health`);

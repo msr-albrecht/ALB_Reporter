@@ -44,8 +44,15 @@
             </select>
         </div>
 
+        <!-- Globales Datumsfeld nur für Bautagesberichte -->
+        <div class="form-group" id="globalDateContainer" style="display: none;">
+            <label for="globalDatum">Datum</label>
+            <input type="date" id="globalDatum" name="globalDatum" style="width: 200px;">
+        </div>
+
         <div class="form-group">
             <label>Mitarbeiter</label>
+
             <div class="multi-select-container">
                 <div class="multi-select-header" id="mitarbeiterHeader">
                     <span class="placeholder">Mitarbeiter auswählen...</span>
@@ -86,6 +93,19 @@
             <button type="button" id="addMaterialBtn" class="btn-add-material">➕ Material hinzufügen</button>
         </div>
 
+        <!-- Betreff und Regieleistungen Felder für Regiebericht/Regieantrag -->
+        <div id="regieMainFields" class="regie-main-fields" style="display: none;">
+            <div class="form-group">
+                <label for="betreff">Betreff *</label>
+                <input type="text" id="betreff" name="betreff" placeholder="Betreff des Regieberichts/Regieantrags..." required>
+            </div>
+
+            <div class="form-group">
+                <label for="regieleistungen">Regieleistungen / Leistungsänderungen *</label>
+                <textarea id="regieleistungen" name="regieleistungen" placeholder="Beschreibung der Regieleistungen oder Leistungsänderungen..." required></textarea>
+            </div>
+        </div>
+
         <!-- Spezifische Textfelder für Regiebericht/Regieantrag -->
         <div id="regieTextFields" class="regie-text-fields" style="display: none;">
             <h3 class="regie-title">📝 Zusätzliche Angaben</h3>
@@ -96,13 +116,28 @@
             </div>
 
             <div class="form-group">
-                <label for="regieleistungen">Regieleistungen / Leistungsänderungen</label>
-                <textarea id="regieleistungen" name="regieleistungen" placeholder="Beschreibung der Regieleistungen oder Leistungsänderungen..."></textarea>
+                <label for="bedenkanmeldung">Bedenkanmeldung/Hinweise an den AG</label>
+                <textarea id="bedenkanmeldung" name="bedenkanmeldung" placeholder="Bedenkanmeldungen oder Hinweise an den Auftraggeber..."></textarea>
+            </div>
+        </div>
+
+        <!-- Spezifische Textfelder für Bautagesbericht -->
+        <div id="bautagesTextFields" class="bautages-text-fields" style="display: none;">
+            <h3 class="bautages-title">📝 Zusätzliche Angaben</h3>
+
+            <div class="form-group">
+                <label for="bautages_bedenkanmeldung">Bedenkanmeldung/Hinweise an den AG</label>
+                <textarea id="bautages_bedenkanmeldung" name="bautages_bedenkanmeldung" placeholder="Bedenkanmeldungen oder Hinweise an den Auftraggeber..."></textarea>
             </div>
 
             <div class="form-group">
-                <label for="bedenkanmeldung">Bedenkanmeldung/Hinweise an den AG</label>
-                <textarea id="bedenkanmeldung" name="bedenkanmeldung" placeholder="Bedenkanmeldungen oder Hinweise an den Auftraggeber..."></textarea>
+                <label for="bautages_behinderungen">Behinderungen/Erschwernisse/Begehungen/Abnahme</label>
+                <textarea id="bautages_behinderungen" name="bautages_behinderungen" placeholder="Beschreibung von Behinderungen oder Erschwernissen..."></textarea>
+            </div>
+
+            <div class="form-group">
+                <label for="bautages_durchgefuehrte_arbeiten">Durchgeführte Arbeiten</label>
+                <textarea id="bautages_durchgefuehrte_arbeiten" name="bautages_durchgefuehrte_arbeiten" placeholder="Beschreibung der durchgeführten Arbeiten..."></textarea>
             </div>
         </div>
 
@@ -179,26 +214,61 @@ document.addEventListener('DOMContentLoaded', function() {
     loadKuerzelOptions();
     loadMitarbeiterOptions();
 
+    // Set default date to today
+    document.getElementById('globalDatum').value = new Date().toISOString().split('T')[0];
+
     // Document type change handler
     document.getElementById('documentType').addEventListener('change', function() {
         const documentType = this.value;
         const materialSection = document.getElementById('materialSection');
         const regieTextFields = document.getElementById('regieTextFields');
         const zusatzInformationenSection = document.getElementById('zusatzInformationenSection');
+        const regieMainFields = document.getElementById('regieMainFields');
+        const baugatesTextFields = document.getElementById('bautagesTextFields');
+        const globalDateContainer = document.getElementById('globalDateContainer');
 
-        // Show material section for regiebericht and regieantrag
+        // Get the required fields for regie documents
+        const betreffField = document.getElementById('betreff');
+        const regieleistungenField = document.getElementById('regieleistungen');
+
+        // Show sections for regiebericht and regieantrag
         if (documentType === 'regiebericht' || documentType === 'regieantrag') {
             if (materialSection) materialSection.style.display = 'block';
             if (regieTextFields) regieTextFields.style.display = 'block';
+            if (regieMainFields) regieMainFields.style.display = 'block';
             if (zusatzInformationenSection) zusatzInformationenSection.style.display = 'none';
+            if (baugatesTextFields) baugatesTextFields.style.display = 'none';
+            if (globalDateContainer) globalDateContainer.style.display = 'none'; // Verstecken bei Regie
+
+            // Set required attributes for regie documents
+            if (betreffField) betreffField.required = true;
+            if (regieleistungenField) regieleistungenField.required = true;
+        } else if (documentType === 'bautagesbericht') {
+            if (materialSection) materialSection.style.display = 'none';
+            if (regieTextFields) regieTextFields.style.display = 'none';
+            if (regieMainFields) regieMainFields.style.display = 'none';
+            if (zusatzInformationenSection) zusatzInformationenSection.style.display = 'none';
+            if (baugatesTextFields) baugatesTextFields.style.display = 'block'; // Show for bautagesbericht
+            if (globalDateContainer) globalDateContainer.style.display = 'block'; // Anzeigen bei Bautagesbericht
+
+            // Remove required attributes for bautagesbericht
+            if (betreffField) betreffField.required = false;
+            if (regieleistungenField) regieleistungenField.required = false;
         } else {
             if (materialSection) materialSection.style.display = 'none';
             if (regieTextFields) regieTextFields.style.display = 'none';
+            if (regieMainFields) regieMainFields.style.display = 'none';
             if (zusatzInformationenSection) zusatzInformationenSection.style.display = 'none'; // Hide for bautagesbericht
+            if (baugatesTextFields) baugatesTextFields.style.display = 'none'; // Hide for bautagesbericht
+            if (globalDateContainer) globalDateContainer.style.display = 'none'; // Verstecken bei anderen Typen
+
+            // Remove required attributes for other document types
+            if (betreffField) betreffField.required = false;
+            if (regieleistungenField) regieleistungenField.required = false;
         }
 
-        // Update date input behavior for all selected employees
-        updateIndividualDateInputs();
+        // Update mitarbeiter display
+        updateSelectedMitarbeiterDisplay();
     });
 
     async function loadKuerzelOptions() {
@@ -258,60 +328,57 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function updateSelectedMitarbeiter() {
-        selectedMitarbeiter = [];
-        mitarbeiterDropdown.querySelectorAll('input[type="checkbox"]:checked').forEach(checkbox => {
-            selectedMitarbeiter.push({
-                name: checkbox.dataset.name,
-                qualifikation: checkbox.dataset.qualifikation
-            });
+        const documentType = document.getElementById('documentType').value;
+
+        // Vorherige Werte vollständig sichern - ALLE Eingabefelder
+        const previousValues = {};
+        document.querySelectorAll('input[id^="arbeitsdatum_von_"], input[id^="startzeit_"], input[id^="endzeit_"], input[id^="wz_anreise_"], input[id^="wz_heimreise_"]').forEach(input => {
+            if (input.type === 'checkbox') {
+                previousValues[input.id] = input.checked;
+            } else {
+                previousValues[input.id] = input.value;
+            }
         });
 
-        // Update display
-        if (selectedMitarbeiter.length === 0) {
-            mitarbeiterHeader.querySelector('.placeholder').textContent = 'Mitarbeiter auswählen...';
-        } else if (selectedMitarbeiter.length === 1) {
-            mitarbeiterHeader.querySelector('.placeholder').textContent = `${selectedMitarbeiter[0].name} ausgewählt`;
-        } else {
-            mitarbeiterHeader.querySelector('.placeholder').textContent = `${selectedMitarbeiter.length} Mitarbeiter ausgewählt`;
-        }
+        // Mitarbeiterauswahl neu aufbauen
+        const neueAuswahl = [];
+        mitarbeiterDropdown.querySelectorAll('input[type="checkbox"]:checked').forEach(checkbox => {
+            const name = checkbox.dataset.name;
+            const qualifikation = checkbox.dataset.qualifikation;
 
-        // Update hidden input
-        selectedMitarbeiterInput.value = JSON.stringify(selectedMitarbeiter);
+            // Für Bautagesberichte: Prüfen ob Mitarbeiter bereits ausgewählt
+            if (documentType === 'bautagesbericht') {
+                const alreadySelected = neueAuswahl.some(m => m.name === name);
+                if (alreadySelected) {
+                    // Checkbox wieder deaktivieren
+                    checkbox.checked = false;
+                    return;
+                }
+            }
 
-        // Update individual date inputs
-        updateIndividualDateInputs();
+            neueAuswahl.push({ name, qualifikation });
+        });
+
+        selectedMitarbeiter = neueAuswahl;
+
+        updateSelectedMitarbeiterDisplay(previousValues);
     }
 
-    function updateIndividualDateInputs() {
-        const selectedMitarbeiterList = document.getElementById('selectedMitarbeiterList');
+    function updateSelectedMitarbeiterDisplay(previousValues = {}) {
         const documentType = document.getElementById('documentType').value;
-        const isRegieDocument = documentType === 'regiebericht' || documentType === 'regieantrag';
-
+        const selectedMitarbeiterList = document.getElementById('selectedMitarbeiterList');
         selectedMitarbeiterList.innerHTML = '';
 
-        selectedMitarbeiter.forEach((mitarbeiter, index) => {
+        selectedMitarbeiter.forEach((mitarbeiter, idx) => {
+            const index = idx; // Einfacher Index für die Anzeige
             const dateFromId = `arbeitsdatum_von_${index}`;
-            const dateBisId = `arbeitsdatum_bis_${index}`;
             const startzeitId = `startzeit_${index}`;
             const endzeitId = `endzeit_${index}`;
-            const wzCheckboxId = `wz_checkbox_${index}`;
 
             let dateInputsHtml = '';
 
-            if (isRegieDocument) {
-                // Für Regieberichte/Regieanträge: Datumsbereich von-bis
-                dateInputsHtml = `
-                    <div class="date-input-wrapper">
-                        <label for="${dateFromId}">Datum von:</label>
-                        <input type="date" id="${dateFromId}" name="arbeitsdatum_von_${index}" class="individual-date" required>
-                    </div>
-                    <div class="date-input-wrapper">
-                        <label for="${dateBisId}">Datum bis:</label>
-                        <input type="date" id="${dateBisId}" name="arbeitsdatum_bis_${index}" class="individual-date" required>
-                    </div>
-                `;
-            } else {
-                // Für Bautagesberichte: Einzelnes Datum
+            // Für Bautagesberichte: Kein individuelles Datumsfeld
+            if (documentType !== 'bautagesbericht') {
                 dateInputsHtml = `
                     <div class="date-input-wrapper">
                         <label for="${dateFromId}">Arbeitsdatum:</label>
@@ -320,22 +387,33 @@ document.addEventListener('DOMContentLoaded', function() {
                 `;
             }
 
-            // WZ/KM Checkbox nur für Regieberichte/Regieanträge
             let wzCheckboxHtml = '';
-            if (isRegieDocument) {
-                wzCheckboxHtml = `
-                    <div class="wz-checkbox-wrapper">
-                        <label for="${wzCheckboxId}">
-                            <input type="checkbox" id="${wzCheckboxId}" name="wz_checkbox_${index}" class="wz-checkbox">
-                            WZ/KM einbeziehen
-                        </label>
-                    </div>
-                `;
+            wzCheckboxHtml = `
+                <div class="wz-checkbox-wrapper">
+                    <label>
+                        <input type="checkbox" id="wz_anreise_${index}" name="wz_anreise_${index}" class="wz-checkbox-anreise">
+                        Anreise
+                    </label>
+                    <label style="margin-left:10px;">
+                        <input type="checkbox" id="wz_heimreise_${index}" name="wz_heimreise_${index}" class="wz-checkbox-heimreise">
+                        Heimreise
+                    </label>
+                </div>
+            `;
+
+            // Für Bautagesberichte: Keine + Buttons (keine mehrfachen Einträge)
+            let controlsHtml = '';
+            if (documentType !== 'bautagesbericht') {
+                if (idx === 0) {
+                    controlsHtml = `<button type="button" class="btn-add-mitarbeiter-eintrag styled-plus" data-mitarbeiter-name="${mitarbeiter.name}">+</button>`;
+                } else {
+                    controlsHtml = `<button type="button" class="btn-remove-mitarbeiter-eintrag" data-mitarbeiter-name="${mitarbeiter.name}" data-mitarbeiter-id="${index}">✕</button>`;
+                }
             }
 
             const mitarbeiterInput = `
                 <div class="mitarbeiter-input-group">
-                    <h4 class="mitarbeiter-name">${mitarbeiter.name} (${mitarbeiter.qualifikation})</h4>
+                    <h4 class="mitarbeiter-name">${mitarbeiter.name} (${mitarbeiter.qualifikation}) ${controlsHtml}</h4>
                     <div class="input-row">
                         ${dateInputsHtml}
                         <div class="time-input-wrapper">
@@ -352,33 +430,54 @@ document.addEventListener('DOMContentLoaded', function() {
             `;
             selectedMitarbeiterList.insertAdjacentHTML('beforeend', mitarbeiterInput);
 
-            // Set default dates
-            const defaultDate = new Date();
-            defaultDate.setDate(defaultDate.getDate() + 1);
-            const defaultDateString = defaultDate.toISOString().split('T')[0];
+            // Werte wiederherstellen - verbesserte Logik
+            setTimeout(() => {
+                const dateInput = document.getElementById(dateFromId);
+                const startInput = document.getElementById(startzeitId);
+                const endInput = document.getElementById(endzeitId);
+                const wzAnreise = document.getElementById(`wz_anreise_${index}`);
+                const wzHeimreise = document.getElementById(`wz_heimreise_${index}`);
 
-            document.getElementById(dateFromId).value = defaultDateString;
-
-            if (isRegieDocument) {
-                // Für Regieberichte: "bis"-Datum auf 2 Tage später setzen
-                const endDate = new Date(defaultDate);
-                endDate.setDate(endDate.getDate() + 2);
-                document.getElementById(dateBisId).value = endDate.toISOString().split('T')[0];
-
-                // Event listener für "von"-Datum, um "bis"-Datum automatisch anzupassen
-                document.getElementById(dateFromId).addEventListener('change', function() {
-                    const vonDate = new Date(this.value);
-                    const bisDate = new Date(vonDate);
-                    bisDate.setDate(bisDate.getDate() + 2);
-                    document.getElementById(dateBisId).value = bisDate.toISOString().split('T')[0];
-                });
-            }
-
-            // Set default times
-            document.getElementById(startzeitId).value = '08:00';
-            document.getElementById(endzeitId).value = '16:00';
+                // Verwende gespeicherte Werte oder Standardwerte
+                if (dateInput && documentType !== 'bautagesbericht') {
+                    dateInput.value = previousValues[dateFromId] || new Date().toISOString().split('T')[0];
+                }
+                if (startInput) {
+                    startInput.value = previousValues[startzeitId] || '08:00';
+                }
+                if (endInput) {
+                    endInput.value = previousValues[endzeitId] || '16:00';
+                }
+                if (wzAnreise) {
+                    wzAnreise.checked = previousValues[`wz_anreise_${index}`] || false;
+                }
+                if (wzHeimreise) {
+                    wzHeimreise.checked = previousValues[`wz_heimreise_${index}`] || false;
+                }
+            }, 0);
         });
+
+        // Hidden input aktualisieren (alle Einträge als Array)
+        const alleEintraege = selectedMitarbeiter.map((e, idx) => ({
+            id: idx,
+            name: e.name,
+            qualifikation: e.qualifikation
+        }));
+        selectedMitarbeiterInput.value = JSON.stringify(alleEintraege);
     }
+
+    // Event Delegation für + und ✕ Buttons
+    document.getElementById('selectedMitarbeiterList').addEventListener('click', function(e) {
+        if (e.target.classList.contains('btn-add-mitarbeiter-eintrag')) {
+            const name = e.target.getAttribute('data-mitarbeiter-name');
+            addMitarbeiterEintrag(name);
+        }
+        if (e.target.classList.contains('btn-remove-mitarbeiter-eintrag')) {
+            const name = e.target.getAttribute('data-mitarbeiter-name');
+            const id = parseInt(e.target.getAttribute('data-mitarbeiter-id'));
+            removeMitarbeiterEintrag(name, id);
+        }
+    });
 
     // Toggle dropdown
     mitarbeiterHeader.addEventListener('click', function() {
@@ -405,46 +504,59 @@ document.addEventListener('DOMContentLoaded', function() {
         // Collect individual dates and times
         const individualDates = {};
         const individualTimes = {};
-        const wzData = {}; // WZ-Daten für jeden Mitarbeiter
+        const wzData = {};
+        // NEU: alle Einträge auslesen
+        const alleEintraege = [];
+        selectedMitarbeiter.forEach((eintrag, index) => {
+            // Füge den Mitarbeiter zur alleEintraege Array hinzu
+            alleEintraege.push({
+                id: index,
+                name: eintrag.name,
+                qualifikation: eintrag.qualifikation
+            });
 
-        selectedMitarbeiter.forEach((mitarbeiter, index) => {
             const startzeitInput = formData.get(`startzeit_${index}`);
             const endzeitInput = formData.get(`endzeit_${index}`);
-            const wzCheckbox = formData.get(`wz_checkbox_${index}`);
 
-            if (isRegieDocument) {
-                // Für Regieberichte/Regieanträge: Datumsbereich von-bis
-                const dateVonInput = formData.get(`arbeitsdatum_von_${index}`);
-                const dateBisInput = formData.get(`arbeitsdatum_bis_${index}`);
-
-                if (dateVonInput && dateBisInput && startzeitInput && endzeitInput) {
-                    individualDates[mitarbeiter.name] = `${dateVonInput} - ${dateBisInput}`;
-                    individualTimes[mitarbeiter.name] = `${startzeitInput}-${endzeitInput}`;
-
-                    // WZ-Daten hinzufügen wenn Checkbox aktiviert ist
-                    if (wzCheckbox) {
-                        wzData[mitarbeiter.name] = {
-                            includeWZ: true,
-                            kuerzel: formData.get('kuerzel') || ''
-                        };
-                    }
-                }
+            // Für Bautagesberichte: Globales Datum verwenden, für andere: individuelles Datum
+            let dateInput;
+            if (documentType === 'bautagesbericht') {
+                dateInput = formData.get('globalDatum');
             } else {
-                // Für Bautagesberichte: Einzelnes Datum
-                const dateInput = formData.get(`arbeitsdatum_von_${index}`);
+                dateInput = formData.get(`arbeitsdatum_von_${index}`);
+            }
 
-                if (dateInput && startzeitInput && endzeitInput) {
-                    individualDates[mitarbeiter.name] = dateInput;
-                    individualTimes[mitarbeiter.name] = `${startzeitInput}-${endzeitInput}`;
+            // NEU: Checkboxen für Anreise/Heimreise
+            const wzAnreise = formData.get(`wz_anreise_${index}`) === 'on';
+            const wzHeimreise = formData.get(`wz_heimreise_${index}`) === 'on';
+
+            if (dateInput && startzeitInput && endzeitInput) {
+                individualDates[`${eintrag.name}_${index}`] = dateInput;
+                individualTimes[`${eintrag.name}_${index}`] = `${startzeitInput}-${endzeitInput}`;
+                if (wzAnreise || wzHeimreise) {
+                    wzData[`${eintrag.name}_${index}`] = {
+                        anreise: wzAnreise,
+                        heimreise: wzHeimreise,
+                        kuerzel: formData.get('kuerzel') || ''
+                    };
                 }
             }
         });
 
-        // Use first employee's data as default values for backward compatibility
-        const firstEmployeeDate = selectedMitarbeiter.length > 0 ?
-            (formData.get(`arbeitsdatum_von_0`) || new Date().toISOString().split('T')[0]) : new Date().toISOString().split('T')[0];
-        const firstEmployeeStartzeit = formData.get(`startzeit_0`) || '08:00';
-        const firstEmployeeEndzeit = formData.get(`endzeit_0`) || '16:00';
+        console.log('Selected Mitarbeiter:', selectedMitarbeiter);
+        console.log('Alle Eintraege:', alleEintraege);
+
+        // Für Bautagesberichte: Globales Datum verwenden
+        let finalArbeitsdatum;
+        if (documentType === 'bautagesbericht') {
+            finalArbeitsdatum = formData.get('globalDatum') || new Date().toISOString().split('T')[0];
+        } else {
+            finalArbeitsdatum = alleEintraege.length > 0 ?
+                (formData.get(`arbeitsdatum_von_${alleEintraege[0].id}`) || new Date().toISOString().split('T')[0]) : new Date().toISOString().split('T')[0];
+        }
+
+        const firstEmployeeStartzeit = alleEintraege.length > 0 ? formData.get(`startzeit_${alleEintraege[0].id}`) || '08:00' : '08:00';
+        const firstEmployeeEndzeit = alleEintraege.length > 0 ? formData.get(`endzeit_${alleEintraege[0].id}`) || '16:00' : '16:00';
         const firstEmployeeTime = `${firstEmployeeStartzeit}-${firstEmployeeEndzeit}`;
 
         // Collect materials for Regieberichte/Regieanträge
@@ -472,9 +584,17 @@ document.addEventListener('DOMContentLoaded', function() {
         let regieTextData = {};
         if (isRegieDocument) {
             regieTextData = {
-                behinderungen: formData.get('behinderungen') || '',
+                betreff: formData.get('betreff') || '',
                 regieleistungen: formData.get('regieleistungen') || '',
+                behinderungen: formData.get('behinderungen') || '',
                 bedenkanmeldung: formData.get('bedenkanmeldung') || ''
+            };
+        } else {
+            // Bautagesbericht spezifische Felder
+            regieTextData = {
+                behinderungen: formData.get('bautages_behinderungen') || '',
+                bedenkanmeldung: formData.get('bautages_bedenkanmeldung') || '',
+                durchgefuehrte_arbeiten: formData.get('bautages_durchgefuehrte_arbeiten') || ''
             };
         }
 
@@ -489,18 +609,16 @@ document.addEventListener('DOMContentLoaded', function() {
             ortBaustelle: selectedOption.dataset.ortBaustelle || '',
             auftragsNr: selectedOption.dataset.auftragsNr || '',
             vergNr: selectedOption.dataset.vergNr || '',
-            mitarbeiter: selectedMitarbeiter,
-            arbeitsdatum: firstEmployeeDate,
+            mitarbeiter: alleEintraege,
+            arbeitsdatum: finalArbeitsdatum,
             arbeitszeit: firstEmployeeTime,
-            zusatzInformationen: formData.get('zusatzInformationen') || undefined,
             individualDates: individualDates,
             individualTimes: individualTimes,
+            wzData: Object.keys(wzData).length > 0 ? wzData : undefined,
             // Benutzerdefinierte Berichtsnummer (neu)
             customReportNumber: document.getElementById('customReportNumber').value || undefined,
             // Material data for Regieberichte/Regieanträge
             materials: materials.length > 0 ? materials : undefined,
-            // WZ-Daten für Regieberichte/Regieanträge
-            wzData: Object.keys(wzData).length > 0 ? wzData : undefined,
             // Regie-spezifische Textfelder
             regieTextData: Object.keys(regieTextData).length > 0 ? regieTextData : undefined
         };
@@ -535,7 +653,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 document.getElementById('customReportNumber').value = '';
 
                 selectedMitarbeiter = [];
-                updateSelectedMitarbeiter();
+                updateSelectedMitarbeiterDisplay();
 
                 // Hide success message after 5 seconds
                 setTimeout(() => {
@@ -736,7 +854,7 @@ document.addEventListener('DOMContentLoaded', function() {
         materialItemIndex++;
     });
 
-    window.removeMaterialItem = function(index) {
+    function removeMaterialItem(index) {
         const itemToRemove = document.querySelector(`.material-item[data-index="${index}"]`);
         if (itemToRemove) {
             itemToRemove.remove();
