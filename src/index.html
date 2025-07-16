@@ -369,51 +369,65 @@ document.addEventListener('DOMContentLoaded', function() {
         const selectedMitarbeiterList = document.getElementById('selectedMitarbeiterList');
         selectedMitarbeiterList.innerHTML = '';
 
+        // Gruppiere Mitarbeiter nach Namen
+        const mitarbeiterGroups = {};
         selectedMitarbeiter.forEach((mitarbeiter, idx) => {
-            const index = idx; // Einfacher Index für die Anzeige
-            const dateFromId = `arbeitsdatum_von_${index}`;
-            const startzeitId = `startzeit_${index}`;
-            const endzeitId = `endzeit_${index}`;
-
-            let dateInputsHtml = '';
-
-            // Für Bautagesberichte: Kein individuelles Datumsfeld
-            if (documentType !== 'bautagesbericht') {
-                dateInputsHtml = `
-                    <div class="date-input-wrapper">
-                        <label for="${dateFromId}">Arbeitsdatum:</label>
-                        <input type="date" id="${dateFromId}" name="arbeitsdatum_von_${index}" class="individual-date" required>
-                    </div>
-                `;
+            if (!mitarbeiterGroups[mitarbeiter.name]) {
+                mitarbeiterGroups[mitarbeiter.name] = {
+                    mitarbeiter: mitarbeiter,
+                    indices: []
+                };
             }
+            mitarbeiterGroups[mitarbeiter.name].indices.push(idx);
+        });
 
-            let wzCheckboxHtml = '';
-            wzCheckboxHtml = `
-                <div class="wz-checkbox-wrapper">
-                    <label>
-                        <input type="checkbox" id="wz_anreise_${index}" name="wz_anreise_${index}" class="wz-checkbox-anreise">
-                        Anreise
-                    </label>
-                    <label style="margin-left:10px;">
-                        <input type="checkbox" id="wz_heimreise_${index}" name="wz_heimreise_${index}" class="wz-checkbox-heimreise">
-                        Heimreise
-                    </label>
-                </div>
-            `;
+        // Erstelle für jede Gruppe einen Kasten
+        Object.values(mitarbeiterGroups).forEach(group => {
+            const { mitarbeiter, indices } = group;
 
-            // Für Bautagesberichte: Keine + Buttons (keine mehrfachen Einträge)
+            // Erstelle den Kasten-Header mit + Button nur beim ersten Eintrag
             let controlsHtml = '';
             if (documentType !== 'bautagesbericht') {
-                if (idx === 0) {
-                    controlsHtml = `<button type="button" class="btn-add-mitarbeiter-eintrag styled-plus" data-mitarbeiter-name="${mitarbeiter.name}">+</button>`;
-                } else {
-                    controlsHtml = `<button type="button" class="btn-remove-mitarbeiter-eintrag" data-mitarbeiter-name="${mitarbeiter.name}" data-mitarbeiter-id="${index}">✕</button>`;
-                }
+                controlsHtml = `<button type="button" class="btn-add-mitarbeiter-eintrag styled-plus" data-mitarbeiter-name="${mitarbeiter.name}">+</button>`;
             }
 
-            const mitarbeiterInput = `
-                <div class="mitarbeiter-input-group">
-                    <h4 class="mitarbeiter-name">${mitarbeiter.name} (${mitarbeiter.qualifikation}) ${controlsHtml}</h4>
+            let inputRowsHtml = '';
+            indices.forEach((index, entryIndex) => {
+                const dateFromId = `arbeitsdatum_von_${index}`;
+                const startzeitId = `startzeit_${index}`;
+                const endzeitId = `endzeit_${index}`;
+
+                let dateInputsHtml = '';
+                // Für Bautagesberichte: Kein individuelles Datumsfeld
+                if (documentType !== 'bautagesbericht') {
+                    dateInputsHtml = `
+                        <div class="date-input-wrapper">
+                            <label for="${dateFromId}">Arbeitsdatum:</label>
+                            <input type="date" id="${dateFromId}" name="arbeitsdatum_von_${index}" class="individual-date" required>
+                        </div>
+                    `;
+                }
+
+                let wzCheckboxHtml = `
+                    <div class="wz-checkbox-wrapper">
+                        <label>
+                            <input type="checkbox" id="wz_anreise_${index}" name="wz_anreise_${index}" class="wz-checkbox-anreise">
+                            Anreise
+                        </label>
+                        <label style="margin-left:10px;">
+                            <input type="checkbox" id="wz_heimreise_${index}" name="wz_heimreise_${index}" class="wz-checkbox-heimreise">
+                            Heimreise
+                        </label>
+                    </div>
+                `;
+
+                // ✕ Button nur für zusätzliche Einträge (nicht für den ersten)
+                let removeButtonHtml = '';
+                if (documentType !== 'bautagesbericht' && entryIndex > 0) {
+                    removeButtonHtml = `<button type="button" class="btn-remove-mitarbeiter-eintrag" data-mitarbeiter-name="${mitarbeiter.name}" data-mitarbeiter-id="${index}" style="margin-left: 10px;">✕</button>`;
+                }
+
+                inputRowsHtml += `
                     <div class="input-row">
                         ${dateInputsHtml}
                         <div class="time-input-wrapper">
@@ -425,13 +439,27 @@ document.addEventListener('DOMContentLoaded', function() {
                             <input type="time" id="${endzeitId}" name="endzeit_${index}" class="individual-time" value="16:00" required>
                         </div>
                         ${wzCheckboxHtml}
+                        ${removeButtonHtml}
                     </div>
+                `;
+            });
+
+            const mitarbeiterInput = `
+                <div class="mitarbeiter-input-group">
+                    <h4 class="mitarbeiter-name">${mitarbeiter.name} (${mitarbeiter.qualifikation}) ${controlsHtml}</h4>
+                    ${inputRowsHtml}
                 </div>
             `;
             selectedMitarbeiterList.insertAdjacentHTML('beforeend', mitarbeiterInput);
+        });
 
-            // Werte wiederherstellen - verbesserte Logik
-            setTimeout(() => {
+        // Werte wiederherstellen - verbesserte Logik
+        setTimeout(() => {
+            selectedMitarbeiter.forEach((mitarbeiter, index) => {
+                const dateFromId = `arbeitsdatum_von_${index}`;
+                const startzeitId = `startzeit_${index}`;
+                const endzeitId = `endzeit_${index}`;
+
                 const dateInput = document.getElementById(dateFromId);
                 const startInput = document.getElementById(startzeitId);
                 const endInput = document.getElementById(endzeitId);
@@ -454,8 +482,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (wzHeimreise) {
                     wzHeimreise.checked = previousValues[`wz_heimreise_${index}`] || false;
                 }
-            }, 0);
-        });
+            });
+        }, 0);
 
         // Hidden input aktualisieren (alle Einträge als Array)
         const alleEintraege = selectedMitarbeiter.map((e, idx) => ({
