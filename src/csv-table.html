@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CSV-Tabelle bearbeiten</title>
     <link rel="stylesheet" href="style.css" type="text/css">
-    <link rel="stylesheet" href="csv-table.css" type="text/css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/handsontable@13.0.0/dist/handsontable.min.css">
 </head>
 <body>
@@ -23,7 +22,6 @@
 <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
 <script>
 const socket = io();
-let hot;
 
 socket.emit('get-csv');
 socket.on('csv-data', function(data) {
