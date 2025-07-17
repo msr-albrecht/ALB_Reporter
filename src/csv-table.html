@@ -5,63 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CSV-Tabelle bearbeiten</title>
     <link rel="stylesheet" href="style.css" type="text/css">
+    <link rel="stylesheet" href="csv-table.css" type="text/css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/handsontable@13.0.0/dist/handsontable.min.css">
-    <style>
-        .container {
-            max-width: 100vw;
-            min-width: 0;
-            padding: 32px;
-            background: #fff;
-            border-radius: 8px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-            margin: 40px auto;
-        }
-        .navbar {
-            background: #2c3e50;
-            padding: 12px 0;
-            margin-bottom: 24px;
-            border-radius: 8px;
-            box-shadow: 0 2px 8px rgba(44,62,80,0.12);
-        }
-        .navbar ul {
-            list-style: none;
-            display: flex;
-            gap: 24px;
-            margin: 0;
-            padding: 0 32px;
-        }
-        .navbar a {
-            color: #fff;
-            text-decoration: none;
-            font-weight: bold;
-            font-size: 1.15em;
-            padding: 8px 18px;
-            border-radius: 6px;
-            transition: background 0.2s, color 0.2s;
-            background: #34495e;
-            box-shadow: 0 1px 4px rgba(44,62,80,0.08);
-        }
-        .navbar a:hover, .navbar a:focus {
-            background: #f39c12;
-            color: #fff;
-            text-decoration: none;
-        }
-        h2 {
-            color: #2c3e50;
-            margin-bottom: 24px;
-        }
-        #csvTable {
-            margin-top: 24px;
-            min-height: 400px;
-            max-width: 100%;
-        }
-    </style>
 </head>
 <body>
 <nav class="navbar">
     <ul>
-        <li><a href="index.html">Zurück zum Berichtsgenerator</a></li>
-        <li><a href="#" id="navCSV">CSV-Tabelle</a></li>
+        <li><a href="index.html">Berichtsgenerator</a></li>
+        <li><a href="csv-table.html" class="active">CSV-Tabelle</a></li>
     </ul>
 </nav>
 <div class="container">
@@ -74,47 +25,40 @@
 const socket = io();
 let hot;
 
-function parseCSV(data) {
-    // Trenne Zeilen und dann Zellen anhand von ;
-    return data.map(row => row.split(';'));
-}
-
 socket.emit('get-csv');
 socket.on('csv-data', function(data) {
-    const parsedData = parseCSV(data);
+    // Falls die Daten als String kommen, in Zeilen splitten und dann jede Zeile in Zellen splitten
+    let parsedData = data;
+    if (typeof data === 'string') {
+        parsedData = data.split('\n').map(row => row.split(';'));
+    } else if (Array.isArray(data)) {
+        parsedData = data.map(row => typeof row === 'string' ? row.split(';') : row);
+    }
     if (!hot) {
         hot = new Handsontable(document.getElementById('csvTable'), {
             data: parsedData,
             rowHeaders: true,
             colHeaders: true,
             contextMenu: true,
-            stretchH: 'all',
-            width: '100%',
-            height: parsedData.length > 10 ? 600 : 400,
             licenseKey: 'non-commercial-and-evaluation'
         });
         hot.addHook('afterChange', function(changes, source) {
             if (source === 'edit' || source === 'ContextMenu') {
-                // Beim Speichern wieder mit ; verbinden
-                const newData = hot.getData().map(row => row.join(';'));
-                socket.emit('update-csv', newData);
+                socket.emit('update-csv', hot.getData());
             }
         });
     } else {
         hot.loadData(parsedData);
-        hot.updateSettings({
-            height: parsedData.length > 10 ? 600 : 400
-        });
     }
 });
 socket.on('csv-update', function(data) {
-    const parsedData = parseCSV(data);
-    if (hot) {
-        hot.loadData(parsedData);
-        hot.updateSettings({
-            height: parsedData.length > 10 ? 600 : 400
-        });
+    let parsedData = data;
+    if (typeof data === 'string') {
+        parsedData = data.split('\n').map(row => row.split(';'));
+    } else if (Array.isArray(data)) {
+        parsedData = data.map(row => typeof row === 'string' ? row.split(';') : row);
     }
+    if (hot) hot.loadData(parsedData);
 });
 </script>
 </body>
