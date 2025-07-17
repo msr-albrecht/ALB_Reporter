@@ -120,9 +120,22 @@ function createSelfSignedCertificate(): { key: string; cert: string } {
 
 // SSL-Zertifikate laden
 const sslPath = path.join(__dirname, '../ssl');
+const keyPath = path.join(sslPath, 'key.pem');
+const certPath = path.join(sslPath, 'cert.pem');
+
+// Prüfe, ob Zertifikate existieren, sonst generieren
+if (!fs.existsSync(keyPath) || !fs.existsSync(certPath)) {
+    console.log('SSL-Zertifikate fehlen. Erstelle neue Zertifikate...');
+    const certificates = createSelfSignedCertificate();
+    fs.mkdirSync(sslPath, { recursive: true });
+    fs.writeFileSync(keyPath, certificates.key);
+    fs.writeFileSync(certPath, certificates.cert);
+    console.log('Neue SSL-Zertifikate wurden erstellt und gespeichert.');
+}
+
 const httpsOptions = {
-    key: fs.readFileSync(path.join(sslPath, 'key.pem'), 'utf8'),
-    cert: fs.readFileSync(path.join(sslPath, 'cert.pem'), 'utf8')
+    key: fs.readFileSync(keyPath, 'utf8'),
+    cert: fs.readFileSync(certPath, 'utf8')
 };
 
 // HTTPS-Server für Express und Socket.IO
