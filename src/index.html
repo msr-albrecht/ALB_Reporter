@@ -258,6 +258,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
             // Set required for bautages_durchgefuehrte_arbeiten
             if (durchgefuehrteArbeitenField) durchgefuehrteArbeitenField.required = true;
+            // Remove required from regie fields
+            if (betreffField) betreffField.required = false;
+            if (regieleistungenField) regieleistungenField.required = false;
         } else {
             if (materialSection) materialSection.style.display = 'none';
             if (regieTextFields) regieTextFields.style.display = 'none';
