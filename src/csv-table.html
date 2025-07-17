@@ -9,19 +9,17 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/handsontable@13.0.0/dist/handsontable.full.min.css">
 </head>
 <body>
-    <nav>
-        <ul style="display: flex; gap: 20px; list-style: none; padding: 10px; background: #eee;">
-            <li><a href="index.html">Startseite</a></li>
-            <li><a href="csv-table.html">CSV-Tabelle</a></li>
-        </ul>
-    </nav>
-    <div class="container">
+    <div class="table-wrapper">
+        <nav>
+            <ul>
+                <li><a href="index.html">Startseite</a></li>
+                <li><a href="csv-table.html">CSV-Tabelle</a></li>
+            </ul>
+        </nav>
         <h2>Bearbeite die CSV-Tabelle</h2>
-        <div id="pagination" class="pagination-bar"></div>
         <div id="csvTable" style="margin-top: 20px;"></div>
     </div>
     <script>
-        // Tabelle lädt jetzt die echten CSV-Daten vom Server
         async function loadCsvTable() {
             try {
                 const res = await fetch('/api/csv-table');
@@ -74,25 +72,6 @@
             }
         });
         loadCsvTable();
-
-        // Beispiel für Pagination-Knöpfe (du kannst die Logik anpassen)
-        function renderPagination(current, total) {
-            const bar = document.getElementById('pagination');
-            bar.innerHTML = '';
-            for(let i=1; i<=total; i++) {
-                const btn = document.createElement('button');
-                btn.textContent = i;
-                btn.className = 'page-btn' + (i === current ? ' active' : '');
-                btn.onclick = () => changePage(i);
-                bar.appendChild(btn);
-            }
-        }
-        function changePage(page) {
-            // Hier die Logik zum Seitenwechsel einfügen
-            // z.B. hot.loadData(...)
-        }
-        // Beispiel-Aufruf (aktuelle Seite 1, insgesamt 5 Seiten)
-        renderPagination(1, 5);
     </script>
 </body>
 </html>
