@@ -143,12 +143,14 @@ if (!fs.existsSync(keyPath) || !fs.existsSync(certPath)) {
         console.log('Neue SSL-Zertifikate wurden erstellt und gespeichert.');
     } catch (err) {
         console.error('Fehler beim Schreiben der Zertifikate:', err);
+        console.error('TIPP: Lösche die Dateien ssl/key.pem und ssl/cert.pem im Host-Ordner und starte den Container neu.');
         process.exit(1);
     }
 } else {
     // Zertifikate existieren, prüfe Schreibrechte
     if (!isWritable(keyPath) || !isWritable(certPath)) {
         console.error('Zertifikate existieren, sind aber nicht beschreibbar! Bitte Dateirechte prüfen: ssl/key.pem und ssl/cert.pem');
+        console.error('TIPP: Lösche die Dateien ssl/key.pem und ssl/cert.pem im Host-Ordner und starte den Container neu.');
         process.exit(1);
     }
 }
