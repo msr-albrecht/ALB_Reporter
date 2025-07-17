@@ -4,7 +4,6 @@ dotenv.config();
 import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import path from 'path';
-import http from 'http';
 import https from 'https';
 import fs from 'fs';
 import forge from 'node-forge';
