@@ -5,10 +5,12 @@ import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import path from 'path';
 import http from 'http';
+import https from 'https';
 import fs from 'fs';
 import forge from 'node-forge';
 import { reportRouter } from './modules/routes';
 import { Server as SocketIOServer } from 'socket.io';
+import { Socket } from 'socket.io';
 
 const app = express();
 const PORT = process.env.PORT || 4055;
@@ -116,39 +118,16 @@ function createSelfSignedCertificate(): { key: string; cert: string } {
     };
 }
 
-// SSL-Zertifikate laden oder erstellen
+// SSL-Zertifikate laden
 const sslPath = path.join(__dirname, '../ssl');
-let httpsOptions: { key: string; cert: string } | null = null;
+const httpsOptions = {
+    key: fs.readFileSync(path.join(sslPath, 'key.pem'), 'utf8'),
+    cert: fs.readFileSync(path.join(sslPath, 'cert.pem'), 'utf8')
+};
 
-try {
-    // Versuche vorhandene Zertifikate zu laden
-    httpsOptions = {
-        key: fs.readFileSync(path.join(sslPath, 'key.pem'), 'utf8'),
-        cert: fs.readFileSync(path.join(sslPath, 'cert.pem'), 'utf8')
-    };
-    console.log('Vorhandene SSL-Zertifikate geladen.');
-} catch (error) {
-    console.log('Keine SSL-Zertifikate gefunden. Erstelle neue selbstsignierte Zertifikate...');
-
-    // Erstelle SSL-Verzeichnis falls es nicht existiert
-    if (!fs.existsSync(sslPath)) {
-        fs.mkdirSync(sslPath, { recursive: true });
-    }
-
-    // Erstelle neue selbstsignierte Zertifikate
-    const certificates = createSelfSignedCertificate();
-
-    // Speichere die Zertifikate
-    fs.writeFileSync(path.join(sslPath, 'key.pem'), certificates.key);
-    fs.writeFileSync(path.join(sslPath, 'cert.pem'), certificates.cert);
-
-    httpsOptions = certificates;
-    console.log('Neue selbstsignierte SSL-Zertifikate erstellt und gespeichert.');
-}
-
-// HTTP-Server für Socket.IO
-const httpServer = http.createServer(app);
-const io = new SocketIOServer(httpServer, {
+// HTTPS-Server für Express und Socket.IO
+const httpsServer = https.createServer(httpsOptions, app);
+const io = new SocketIOServer(httpsServer, {
     cors: {
         origin: '*',
     }
@@ -167,7 +146,7 @@ function writeCSVFile(data: string[][]) {
     fs.writeFileSync(CSV_PATH, csvString, 'utf8');
 }
 
-io.on('connection', (socket) => {
+io.on('connection', (socket: Socket) => {
     // CSV senden
     socket.on('get-csv', () => {
         const csvData = readCSVFile();
@@ -175,13 +154,12 @@ io.on('connection', (socket) => {
     });
 
     // CSV-Update empfangen und an alle senden
-    socket.on('update-csv', (newData) => {
+    socket.on('update-csv', (newData: string[][]) => {
         writeCSVFile(newData);
         io.emit('csv-update', newData);
     });
 });
 
-// HTTPS-Server entfernen, stattdessen HTTP-Server starten
-httpServer.listen(PORT, () => {
-    console.log(`Server läuft auf Port ${PORT}`);
+httpsServer.listen(PORT, () => {
+    console.log(`HTTPS-Server läuft auf Port ${PORT}`);
 });
