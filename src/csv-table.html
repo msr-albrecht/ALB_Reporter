@@ -27,16 +27,9 @@ let hot;
 
 socket.emit('get-csv');
 socket.on('csv-data', function(data) {
-    // Falls die Daten als String kommen, in Zeilen splitten und dann jede Zeile in Zellen splitten
-    let parsedData = data;
-    if (typeof data === 'string') {
-        parsedData = data.split('\n').map(row => row.split(';'));
-    } else if (Array.isArray(data)) {
-        parsedData = data.map(row => typeof row === 'string' ? row.split(';') : row);
-    }
     if (!hot) {
         hot = new Handsontable(document.getElementById('csvTable'), {
-            data: parsedData,
+            data: data,
             rowHeaders: true,
             colHeaders: true,
             contextMenu: true,
@@ -48,17 +41,11 @@ socket.on('csv-data', function(data) {
             }
         });
     } else {
-        hot.loadData(parsedData);
+        hot.loadData(data);
     }
 });
 socket.on('csv-update', function(data) {
-    let parsedData = data;
-    if (typeof data === 'string') {
-        parsedData = data.split('\n').map(row => row.split(';'));
-    } else if (Array.isArray(data)) {
-        parsedData = data.map(row => typeof row === 'string' ? row.split(';') : row);
-    }
-    if (hot) hot.loadData(parsedData);
+    if (hot) hot.loadData(data);
 });
 </script>
 </body>
