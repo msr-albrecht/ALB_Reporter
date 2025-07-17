@@ -8,8 +8,6 @@ import https from 'https';
 import fs from 'fs';
 import forge from 'node-forge';
 import { reportRouter } from './modules/routes';
-import { Server as SocketIOServer } from 'socket.io';
-import { Socket } from 'socket.io';
 
 const app = express();
 const PORT = process.env.PORT || 4055;
@@ -117,83 +115,60 @@ function createSelfSignedCertificate(): { key: string; cert: string } {
     };
 }
 
-// SSL-Zertifikate laden
+// SSL-Zertifikate laden oder erstellen
 const sslPath = path.join(__dirname, '../ssl');
-const keyPath = path.join(sslPath, 'key.pem');
-const certPath = path.join(sslPath, 'cert.pem');
+let httpsOptions: { key: string; cert: string } | null = null;
 
-// Prüfe, ob Zertifikate existieren und beschreibbar sind
-function isWritable(filePath: string) {
-    try {
-        fs.accessSync(filePath, fs.constants.W_OK);
-        return true;
-    } catch {
-        return false;
+try {
+    // Versuche vorhandene Zertifikate zu laden
+    httpsOptions = {
+        key: fs.readFileSync(path.join(sslPath, 'key.pem'), 'utf8'),
+        cert: fs.readFileSync(path.join(sslPath, 'cert.pem'), 'utf8')
+    };
+    console.log('Vorhandene SSL-Zertifikate geladen.');
+} catch (error) {
+    console.log('Keine SSL-Zertifikate gefunden. Erstelle neue selbstsignierte Zertifikate...');
+
+    // Erstelle SSL-Verzeichnis falls es nicht existiert
+    if (!fs.existsSync(sslPath)) {
+        fs.mkdirSync(sslPath, { recursive: true });
     }
-}
 
-if (!fs.existsSync(keyPath) || !fs.existsSync(certPath)) {
-    console.log('SSL-Zertifikate fehlen. Erstelle neue Zertifikate...');
-    fs.mkdirSync(sslPath, { recursive: true });
+    // Erstelle neue selbstsignierte Zertifikate
     const certificates = createSelfSignedCertificate();
-    try {
-        fs.writeFileSync(keyPath, certificates.key);
-        fs.writeFileSync(certPath, certificates.cert);
-        console.log('Neue SSL-Zertifikate wurden erstellt und gespeichert.');
-    } catch (err) {
-        console.error('Fehler beim Schreiben der Zertifikate:', err);
-        console.error('TIPP: Lösche die Dateien ssl/key.pem und ssl/cert.pem im Host-Ordner und starte den Container neu.');
-        process.exit(1);
-    }
+
+    // Speichere die Zertifikate
+    fs.writeFileSync(path.join(sslPath, 'key.pem'), certificates.key);
+    fs.writeFileSync(path.join(sslPath, 'cert.pem'), certificates.cert);
+
+    httpsOptions = certificates;
+    console.log('Neue selbstsignierte SSL-Zertifikate erstellt und gespeichert.');
+}
+
+// Starte HTTPS Server
+if (httpsOptions) {
+    https.createServer(httpsOptions, app).listen(PORT, () => {
+        const serverUrl = process.env.SERVER_URL || `https://localhost:${PORT}`;
+        console.log(`🔒 HTTPS Server läuft auf Port ${PORT}`);
+        console.log(`🌐 Öffentliche URL: ${serverUrl}`);
+        console.log(`🔌 API: ${serverUrl}/api`);
+        console.log(`📁 Dateiserver: ${serverUrl}/files`);
+
+        if (serverUrl.includes('localhost')) {
+            console.log('⚠️  Hinweis: Bei selbstsignierten Zertifikaten wird der Browser eine Sicherheitswarnung anzeigen.');
+            console.log('   Klicken Sie auf "Erweitert" und dann "Weiter zu localhost (unsicher)"');
+        } else {
+            console.log('✅ Server ist öffentlich erreichbar unter der konfigurierten URL');
+        }
+    });
 } else {
-    // Zertifikate existieren, prüfe Schreibrechte
-    if (!isWritable(keyPath) || !isWritable(certPath)) {
-        console.error('Zertifikate existieren, sind aber nicht beschreibbar! Bitte Dateirechte prüfen: ssl/key.pem und ssl/cert.pem');
-        console.error('TIPP: Lösche die Dateien ssl/key.pem und ssl/cert.pem im Host-Ordner und starte den Container neu.');
-        process.exit(1);
-    }
-}
-
-const httpsOptions = {
-    key: fs.readFileSync(keyPath, 'utf8'),
-    cert: fs.readFileSync(certPath, 'utf8')
-};
-
-// HTTPS-Server für Express und Socket.IO
-const httpsServer = https.createServer(httpsOptions, app);
-const io = new SocketIOServer(httpsServer, {
-    cors: {
-        origin: '*',
-    }
-});
-
-const CSV_PATH = path.join(__dirname, '../dummy.csv');
-
-function readCSVFile() {
-    const content = fs.readFileSync(CSV_PATH, 'utf8');
-    // Einfache CSV-Umwandlung (ohne Quotes/Escaping)
-    return content.split('\n').map(row => row.split(','));
-}
-
-function writeCSVFile(data: string[][]) {
-    const csvString = data.map(row => row.join(',')).join('\n');
-    fs.writeFileSync(CSV_PATH, csvString, 'utf8');
-}
-
-io.on('connection', (socket: Socket) => {
-    // CSV senden
-    socket.on('get-csv', () => {
-        const csvData = readCSVFile();
-        socket.emit('csv-data', csvData);
+    // Fallback zu HTTP wenn HTTPS nicht funktioniert
+    const serverUrl = process.env.SERVER_URL || `http://localhost:${PORT}`;
+    console.error('❌ Fehler beim Laden der SSL-Zertifikate. Fallback zu HTTP...');
+    app.listen(PORT, () => {
+        console.log(`🔓 HTTP Server läuft auf Port ${PORT} (HTTPS-Fallback)`);
+        console.log(`🌐 Öffentliche URL: ${serverUrl}`);
+        console.log(`🔌 API: ${serverUrl}/api`);
+        console.log(`📁 Dateiserver: ${serverUrl}/files`);
     });
-
-    // CSV-Update empfangen und an alle senden
-    socket.on('update-csv', (newData: string[][]) => {
-        writeCSVFile(newData);
-        io.emit('csv-update', newData);
-    });
-});
-
-httpsServer.listen(PORT, () => {
-    console.log(`HTTPS-Server läuft auf Port ${PORT}`);
-});
+}

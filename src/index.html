@@ -7,12 +7,6 @@
     <link rel="stylesheet" href="style.css" type="text/css">
 </head>
 <body>
-<nav class="navbar">
-    <ul>
-        <li><a href="#" id="navBericht">Berichtsgenerator</a></li>
-        <li><a href="#" id="navCSV">CSV-Tabelle</a></li>
-    </ul>
-</nav>
 <div class="container">
     <div class="header">
         <div class="header-content">
@@ -152,10 +146,7 @@
             <strong>✅ Erfolg!</strong> Ihr Bericht wurde erfolgreich erstellt und gespeichert.
         </div>
     </form>
-    <div id="csvTableView" style="display:none;">
-        <h2>🗂️ CSV-Tabelle bearbeiten</h2>
-        <div id="csvTable"></div>
-    </div>
+
     <div class="reports-section">
         <div class="reports-header">
             <h2>📋 Gespeicherte Berichte</h2>
@@ -980,20 +971,6 @@ document.addEventListener('DOMContentLoaded', function() {
             alert('Fehler beim Löschen des Berichts: ' + error.message);
         }
     }
-
-    // Umschalten zwischen Ansichten
-    const navBericht = document.getElementById('navBericht');
-    const navCSV = document.getElementById('navCSV');
-    navBericht.addEventListener('click', function(e) {
-        e.preventDefault();
-        form.style.display = '';
-        document.getElementById('csvTableView').style.display = 'none';
-    });
-    navCSV.addEventListener('click', function(e) {
-        e.preventDefault();
-        form.style.display = 'none';
-        document.getElementById('csvTableView').style.display = '';
-    });
 });
 </script>
 </body>
