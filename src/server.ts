@@ -10,6 +10,7 @@ import forge from 'node-forge';
 import { reportRouter } from './modules/routes';
 import { Server as SocketIOServer } from 'socket.io';
 import { Socket } from 'socket.io';
+import http from 'http';
 
 const app = express();
 const PORT = process.env.PORT || 4055;
@@ -163,7 +164,8 @@ try {
 
 // HTTPS-Server und Socket.IO
 const httpsServer = https.createServer(httpsOptions, app);
-const io = new SocketIOServer(httpsServer, {
+const server = http.createServer(app);
+const io = new SocketIOServer(server, {
     cors: {
         origin: '*',
     }
@@ -180,16 +182,25 @@ function writeCSVFile(data: string[][]) {
 }
 io.on('connection', (socket: Socket) => {
     socket.on('get-csv', () => {
-        const csvData = readCSVFile();
-        socket.emit('csv-data', csvData);
+        const csvPath = path.join(__dirname, '../dummy.csv');
+        fs.readFile(csvPath, 'utf8', (err, data) => {
+            if (err) {
+                socket.emit('csv-data', '');
+            } else {
+                socket.emit('csv-data', data);
+            }
+        });
     });
-    socket.on('update-csv', (newData: string[][]) => {
-        writeCSVFile(newData);
-        io.emit('csv-update', newData);
+    socket.on('update-csv', (tableData: string[][]) => {
+        // Optional: CSV speichern
+        const csvString = tableData.map(row => row.join(';')).join('\n');
+        const csvPath = path.join(__dirname, '../dummy.csv');
+        fs.writeFile(csvPath, csvString, 'utf8', () => {});
+        io.emit('csv-update', csvString);
     });
 });
 
-httpsServer.listen(PORT, () => {
+server.listen(PORT, () => {
     const serverUrl = process.env.SERVER_URL || `https://localhost:${PORT}`;
     console.log(`🔒 HTTPS Server läuft auf Port ${PORT}`);
     console.log(`🌐 Öffentliche URL: ${serverUrl}`);
