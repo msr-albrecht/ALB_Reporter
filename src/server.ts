@@ -200,7 +200,7 @@ io.on('connection', (socket: Socket) => {
     });
 });
 
-server.listen(PORT, () => {
+httpsServer.listen(PORT, () => {
     const serverUrl = process.env.SERVER_URL || `https://localhost:${PORT}`;
     console.log(`🔒 HTTPS Server läuft auf Port ${PORT}`);
     console.log(`🌐 Öffentliche URL: ${serverUrl}`);
