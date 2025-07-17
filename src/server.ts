@@ -4,10 +4,11 @@ dotenv.config();
 import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import path from 'path';
-import https from 'https';
+import http from 'http';
 import fs from 'fs';
 import forge from 'node-forge';
 import { reportRouter } from './modules/routes';
+import { Server as SocketIOServer } from 'socket.io';
 
 const app = express();
 const PORT = process.env.PORT || 4055;
@@ -145,30 +146,42 @@ try {
     console.log('Neue selbstsignierte SSL-Zertifikate erstellt und gespeichert.');
 }
 
-// Starte HTTPS Server
-if (httpsOptions) {
-    https.createServer(httpsOptions, app).listen(PORT, () => {
-        const serverUrl = process.env.SERVER_URL || `https://localhost:${PORT}`;
-        console.log(`🔒 HTTPS Server läuft auf Port ${PORT}`);
-        console.log(`🌐 Öffentliche URL: ${serverUrl}`);
-        console.log(`🔌 API: ${serverUrl}/api`);
-        console.log(`📁 Dateiserver: ${serverUrl}/files`);
+// HTTP-Server für Socket.IO
+const httpServer = http.createServer(app);
+const io = new SocketIOServer(httpServer, {
+    cors: {
+        origin: '*',
+    }
+});
 
-        if (serverUrl.includes('localhost')) {
-            console.log('⚠️  Hinweis: Bei selbstsignierten Zertifikaten wird der Browser eine Sicherheitswarnung anzeigen.');
-            console.log('   Klicken Sie auf "Erweitert" und dann "Weiter zu localhost (unsicher)"');
-        } else {
-            console.log('✅ Server ist öffentlich erreichbar unter der konfigurierten URL');
-        }
-    });
-} else {
-    // Fallback zu HTTP wenn HTTPS nicht funktioniert
-    const serverUrl = process.env.SERVER_URL || `http://localhost:${PORT}`;
-    console.error('❌ Fehler beim Laden der SSL-Zertifikate. Fallback zu HTTP...');
-    app.listen(PORT, () => {
-        console.log(`🔓 HTTP Server läuft auf Port ${PORT} (HTTPS-Fallback)`);
-        console.log(`🌐 Öffentliche URL: ${serverUrl}`);
-        console.log(`🔌 API: ${serverUrl}/api`);
-        console.log(`📁 Dateiserver: ${serverUrl}/files`);
-    });
+const CSV_PATH = path.join(__dirname, '../dummy.csv');
+
+function readCSVFile() {
+    const content = fs.readFileSync(CSV_PATH, 'utf8');
+    // Einfache CSV-Umwandlung (ohne Quotes/Escaping)
+    return content.split('\n').map(row => row.split(','));
 }
+
+function writeCSVFile(data: string[][]) {
+    const csvString = data.map(row => row.join(',')).join('\n');
+    fs.writeFileSync(CSV_PATH, csvString, 'utf8');
+}
+
+io.on('connection', (socket) => {
+    // CSV senden
+    socket.on('get-csv', () => {
+        const csvData = readCSVFile();
+        socket.emit('csv-data', csvData);
+    });
+
+    // CSV-Update empfangen und an alle senden
+    socket.on('update-csv', (newData) => {
+        writeCSVFile(newData);
+        io.emit('csv-update', newData);
+    });
+});
+
+// HTTPS-Server entfernen, stattdessen HTTP-Server starten
+httpServer.listen(PORT, () => {
+    console.log(`Server läuft auf Port ${PORT}`);
+});
