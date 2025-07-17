@@ -10,14 +10,14 @@ services:
       - db-data:/app/db
       - ssl-data:/app/ssl
     environment:
-      - NODE_ENV=production
-      - DOCKER_ENV=true
-      - DB_PATH=/app/db/reports.db
-      - PORT=4055
-           - FILE_SERVER_URL=https://file-server:3003
-      - PUBLIC_FILE_SERVER_URL=https://139.162.154.60:3003
-      - SERVER_URL=https://139.162.154.60:4055
-      - ADMIN_KEY=admin123
+      NODE_ENV: production
+      DOCKER_ENV: true
+      DB_PATH: /app/db/reports.db
+      PORT: 4055
+      FILE_SERVER_URL: https://file-server:3003
+      PUBLIC_FILE_SERVER_URL: https://139.162.154.60:3003
+      SERVER_URL: https://139.162.154.60:4055
+      ADMIN_KEY: admin123
     depends_on:
       - file-server
     networks:
@@ -33,11 +33,11 @@ services:
       - file-data:/app/storage
       - ./.env:/app/.env
     environment:
-      - NODE_ENV=production
-      - FILE_SERVER_PORT=3003
-      - FILE_SERVER_HOST=0.0.0.0
-      - PUBLIC_FILE_SERVER_URL=https://139.162.154.60:3003
-      - STORAGE_BASE_DIR=/app/storage
+      NODE_ENV: production
+      FILE_SERVER_PORT: 3003
+      FILE_SERVER_HOST: 0.0.0.0
+      PUBLIC_FILE_SERVER_URL: https://139.162.154.60:3003
+      STORAGE_BASE_DIR: /app/storage
     networks:
       - berichte-network
     restart: unless-stopped
