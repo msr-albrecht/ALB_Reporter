@@ -123,14 +123,34 @@ const sslPath = path.join(__dirname, '../ssl');
 const keyPath = path.join(sslPath, 'key.pem');
 const certPath = path.join(sslPath, 'cert.pem');
 
-// Prüfe, ob Zertifikate existieren, sonst generieren
+// Prüfe, ob Zertifikate existieren und beschreibbar sind
+function isWritable(filePath: string) {
+    try {
+        fs.accessSync(filePath, fs.constants.W_OK);
+        return true;
+    } catch {
+        return false;
+    }
+}
+
 if (!fs.existsSync(keyPath) || !fs.existsSync(certPath)) {
     console.log('SSL-Zertifikate fehlen. Erstelle neue Zertifikate...');
-    const certificates = createSelfSignedCertificate();
     fs.mkdirSync(sslPath, { recursive: true });
-    fs.writeFileSync(keyPath, certificates.key);
-    fs.writeFileSync(certPath, certificates.cert);
-    console.log('Neue SSL-Zertifikate wurden erstellt und gespeichert.');
+    const certificates = createSelfSignedCertificate();
+    try {
+        fs.writeFileSync(keyPath, certificates.key);
+        fs.writeFileSync(certPath, certificates.cert);
+        console.log('Neue SSL-Zertifikate wurden erstellt und gespeichert.');
+    } catch (err) {
+        console.error('Fehler beim Schreiben der Zertifikate:', err);
+        process.exit(1);
+    }
+} else {
+    // Zertifikate existieren, prüfe Schreibrechte
+    if (!isWritable(keyPath) || !isWritable(certPath)) {
+        console.error('Zertifikate existieren, sind aber nicht beschreibbar! Bitte Dateirechte prüfen: ssl/key.pem und ssl/cert.pem');
+        process.exit(1);
+    }
 }
 
 const httpsOptions = {
