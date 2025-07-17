@@ -8,8 +8,6 @@ import https from 'https';
 import fs from 'fs';
 import forge from 'node-forge';
 import { reportRouter } from './modules/routes';
-import { Server } from 'socket.io';
-import http from 'http';
 
 const app = express();
 const PORT = process.env.PORT || 4055;
@@ -146,35 +144,6 @@ try {
     httpsOptions = certificates;
     console.log('Neue selbstsignierte SSL-Zertifikate erstellt und gespeichert.');
 }
-
-// Socket.IO-Server
-const server = http.createServer(app);
-const io = new Server(server, {
-    cors: {
-        origin: true,
-        credentials: true
-    }
-});
-
-const csvPath = path.join(__dirname, '../dummy.csv');
-
-io.on('connection', (socket) => {
-    socket.on('csv-update', ({ row, col, value }) => {
-        // CSV einlesen
-        fs.readFile(csvPath, 'utf8', (err, data) => {
-            if (err) return;
-            let rows = data.split('\n').map(r => r.split(','));
-            if (rows[row] && rows[row][col] !== undefined) {
-                rows[row][col] = value;
-                // CSV zurückschreiben
-                const newCsv = rows.map(r => r.join(',')).join('\n');
-                fs.writeFile(csvPath, newCsv, () => {
-                    io.emit('csv-update', { row, col, value });
-                });
-            }
-        });
-    });
-});
 
 // Starte HTTPS Server
 if (httpsOptions) {
