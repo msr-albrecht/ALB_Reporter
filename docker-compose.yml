@@ -52,6 +52,7 @@ services:
     environment:
       PUID: 1000
       PGID: 1000
+      FB_NOAUTH: "true"
     depends_on:
       - file-server
     networks:
