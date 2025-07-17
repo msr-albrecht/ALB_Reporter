@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CSV Tabelle bearbeiten</title>
+    <link rel="stylesheet" href="style.css" type="text/css">
+    <script src="https://cdn.jsdelivr.net/npm/handsontable@13.0.0/dist/handsontable.full.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/handsontable@13.0.0/dist/handsontable.full.min.css">
+</head>
+<body>
+    <nav>
+        <ul style="display: flex; gap: 20px; list-style: none; padding: 10px; background: #eee;">
+            <li><a href="index.html">Startseite</a></li>
+            <li><a href="csv-table.html">CSV-Tabelle</a></li>
+        </ul>
+    </nav>
+    <div class="container">
+        <h2>Bearbeite die CSV-Tabelle</h2>
+        <div id="csvTable" style="margin-top: 20px;"></div>
+    </div>
+    <script>
+        // Tabelle lädt jetzt die echten CSV-Daten vom Server
+        async function loadCsvTable() {
+            try {
+                const res = await fetch('/api/csv-table');
+                const result = await res.json();
+                if (result.success && Array.isArray(result.data)) {
+                    hot.loadData(result.data);
+                }
+            } catch (e) {
+                // Fehlerbehandlung kann ergänzt werden
+            }
+        }
+        const container = document.getElementById('csvTable');
+        const hot = new Handsontable(container, {
+            data: [], // Initial leer, wird geladen
+            rowHeaders: true,
+            colHeaders: true,
+            licenseKey: 'non-commercial-and-evaluation',
+            minSpareRows: 1,
+            contextMenu: true,
+            afterChange: async function(changes, source) {
+                if (source === 'loadData') return;
+                const tableData = hot.getData();
+                try {
+                    await fetch('/api/save-csv', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({data: tableData})
+                    });
+                } catch (e) {}
+            },
+            afterCreateRow: async function(index, amount) {
+                const tableData = hot.getData();
+                try {
+                    await fetch('/api/save-csv', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({data: tableData})
+                    });
+                } catch (e) {}
+            },
+            afterRemoveRow: async function(index, amount, removedRows, changes) {
+                const tableData = hot.getData();
+                try {
+                    await fetch('/api/save-csv', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({data: tableData})
+                    });
+                } catch (e) {}
+            }
+        });
+        loadCsvTable();
+    </script>
+</body>
+</html>

@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import { ReportService, CreateReportRequest } from './reportService';
 import { CsvReader } from './csvReader';
 import { MitarbeiterReader } from './mitarbeiterReader';
+import fs from 'fs';
 
 export const reportRouter = Router();
 const reportService = new ReportService();
@@ -196,3 +197,30 @@ reportRouter.get('/reports/:id/download', async (req: Request, res: Response): P
     }
 });
 
+// CSV-Tabelle laden
+reportRouter.get('/csv-table', async (req: Request, res: Response) => {
+    try {
+        // Rohdaten aus dummy.csv laden
+        const csvRaw = await fs.promises.readFile('./dummy.csv', 'utf-8');
+        const rows = csvRaw.split('\n').filter(line => line.trim()).map(line => line.split(';'));
+        res.json({ success: true, data: rows });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Fehler beim Laden der CSV-Tabelle' });
+    }
+});
+
+// CSV-Tabelle speichern
+reportRouter.post('/save-csv', async (req: Request, res: Response) => {
+    try {
+        const { data } = req.body;
+        if (!Array.isArray(data) || data.length === 0) {
+            return res.status(400).json({ success: false, message: 'Ungültige CSV-Daten' });
+        }
+        // CSV-String erzeugen
+        const csvString = data.map((row: any[]) => row.map((cell: any) => String(cell).replace(/;/g, ',')).join(';')).join('\n');
+        await fs.promises.writeFile('./dummy.csv', csvString, 'utf-8');
+        return res.json({ success: true });
+    } catch (error) {
+        return res.status(500).json({ success: false, message: 'Fehler beim Speichern der CSV-Tabelle' });
+    }
+});
