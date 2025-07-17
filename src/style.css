@@ -21,7 +21,11 @@ body {
     padding: 40px;
     width: 100%;
     max-width: 800px;
-    overflow-x: auto;
+    max-height: 80vh;
+    overflow: auto;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
 }
 
 header {
@@ -172,7 +176,11 @@ body {
     padding: 40px;
     width: 100%;
     max-width: 800px;
-    overflow-x: auto;
+    max-height: 80vh;
+    overflow: auto;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
 }
 
 .header {
@@ -1252,9 +1260,12 @@ input:focus, select:focus, textarea:focus {
 
 #csvTable {
     max-width: 100%;
-    overflow-x: auto;
+    height: 60vh;
+    min-height: 300px;
+    overflow: auto;
     background: #fafaff;
     border-radius: 8px;
     box-shadow: 0 2px 8px rgba(102,126,234,0.08);
     padding: 10px;
+    margin-left: 0;
 }
