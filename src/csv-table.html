@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CSV-Tabelle bearbeiten</title>
+    <link rel="stylesheet" href="style.css" type="text/css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/handsontable@13.0.0/dist/handsontable.min.css">
+</head>
+<body>
+<nav class="navbar">
+    <ul>
+        <li><a href="index.html">Zurück zum Berichtsgenerator</a></li>
+        <li><a href="#" id="navCSV">CSV-Tabelle</a></li>
+    </ul>
+</nav>
+<div class="container">
+    <h2>🗂️ CSV-Tabelle bearbeiten</h2>
+    <div id="csvTable"></div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/handsontable@13.0.0/dist/handsontable.min.js"></script>
+<script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+<script>
+const socket = io();
+let hot;
+
+socket.emit('get-csv');
+socket.on('csv-data', function(data) {
+    if (!hot) {
+        hot = new Handsontable(document.getElementById('csvTable'), {
+            data: data,
+            rowHeaders: true,
+            colHeaders: true,
+            contextMenu: true,
+            licenseKey: 'non-commercial-and-evaluation'
+        });
+        hot.addHook('afterChange', function(changes, source) {
+            if (source === 'edit' || source === 'ContextMenu') {
+                socket.emit('update-csv', hot.getData());
+            }
+        });
+    } else {
+        hot.loadData(data);
+    }
+});
+socket.on('csv-update', function(data) {
+    if (hot) hot.loadData(data);
+});
+</script>
+</body>
+</html>
+
