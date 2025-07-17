@@ -42,6 +42,22 @@ services:
       - berichte-network
     restart: unless-stopped
 
+  filebrowser:
+    image: filebrowser/filebrowser:latest
+    container_name: alb_filebrowser_container
+    ports:
+      - "8080:80" # Filebrowser Web-UI
+    volumes:
+      - file-data:/srv # Zugriff auf die gleichen Dateien wie file-server
+    environment:
+      PUID: 1000
+      PGID: 1000
+    depends_on:
+      - file-server
+    networks:
+      - berichte-network
+    restart: unless-stopped
+
 volumes:
   db-data:
   ssl-data:
