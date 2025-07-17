@@ -468,7 +468,7 @@ export class BautagesberichtGenerator {
                         columnSpan: 2,
                     }),
                     new TableCell({
-                        children: [new Paragraph({ children: [new TextRun({ text: weatherData.temperature, size: 20 })] })],
+                        children: [new Paragraph({ children: [new TextRun({ text: `min: ${weatherData.temperatureMin} max: ${weatherData.temperatureMax}`, size: 20 })] })],
                         columnSpan: 3,
                     }),
                     new TableCell({

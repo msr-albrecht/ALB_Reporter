@@ -1,17 +1,9 @@
 import axios from 'axios';
 
 export interface WeatherData {
-    temperature: string;
+    temperatureMin: string;
+    temperatureMax: string;
     condition: string;
-}
-
-interface WeatherAPIResponse {
-    main: {
-        temp: number;
-    };
-    weather: Array<{
-        description: string;
-    }>;
 }
 
 interface ForecastAPIResponse {
@@ -71,38 +63,66 @@ export class WeatherService {
 
             const forecastList = forecastResponse.data.list;
 
-            // Stelle sicher, dass wir mindestens einen Eintrag haben
             if (forecastList.length === 0) {
                 throw new Error('No forecast data available');
             }
 
-            // Finde den Forecast-Eintrag, der am nächsten zum Zieldatum liegt
-            const targetTimestamp = targetDate.getTime();
-            let closestForecast = forecastList[0]!; // Non-null assertion da wir bereits überprüft haben
-            let closestDiff = Math.abs(closestForecast.dt * 1000 - targetTimestamp);
+            // Finde alle Forecasts für das Zieldatum
+            const targetDay = targetDate.getDate();
+            const targetMonth = targetDate.getMonth();
+            const targetYear = targetDate.getFullYear();
+            const dayForecasts = forecastList.filter(f => {
+                const d = new Date(f.dt * 1000);
+                return d.getDate() === targetDay && d.getMonth() === targetMonth && d.getFullYear() === targetYear;
+            });
 
-            for (let i = 1; i < forecastList.length; i++) {
-                const forecast = forecastList[i]!; // Non-null assertion
-                const diff = Math.abs(forecast.dt * 1000 - targetTimestamp);
-                if (diff < closestDiff) {
-                    closestDiff = diff;
-                    closestForecast = forecast;
+            let minTemp: number;
+            let maxTemp: number;
+            let condition: string;
+            if (dayForecasts.length > 0) {
+                minTemp = Math.min(...dayForecasts.map(f => f.main.temp));
+                maxTemp = Math.max(...dayForecasts.map(f => f.main.temp));
+                let firstWeather = '';
+                const first = dayForecasts[0];
+                if (first && Array.isArray(first.weather) && first.weather.length > 0 && first.weather[0] && typeof first.weather[0].description === 'string') {
+                    firstWeather = first.weather[0].description;
                 }
-            }
-
-            // Zusätzliche Sicherheitsüberprüfung
-            if (!closestForecast?.weather?.[0]?.description) {
-                throw new Error('No valid weather data found in forecast');
+                condition = this.translateWeatherCondition(firstWeather);
+            } else {
+                // Fallback: Nimm den Forecast, der am nächsten zum Zieldatum liegt
+                const targetTimestamp = targetDate.getTime();
+                let closestForecast = forecastList[0]!;
+                let closestDiff = Math.abs(closestForecast.dt * 1000 - targetTimestamp);
+                for (let i = 1; i < forecastList.length; i++) {
+                    const forecast = forecastList[i]!;
+                    const diff = Math.abs(forecast.dt * 1000 - targetTimestamp);
+                    if (diff < closestDiff) {
+                        closestDiff = diff;
+                        closestForecast = forecast;
+                    }
+                }
+                minTemp = maxTemp = closestForecast.main.temp;
+                let closestWeather = '';
+                if (closestForecast && Array.isArray(closestForecast.weather) && closestForecast.weather.length > 0 && closestForecast.weather[0] && typeof closestForecast.weather[0].description === 'string') {
+                    closestWeather = closestForecast.weather[0].description;
+                }
+                condition = this.translateWeatherCondition(closestWeather);
             }
 
             return {
-                temperature: `${Math.round(closestForecast.main.temp)}°C`,
-                condition: this.translateWeatherCondition(closestForecast.weather[0].description)
+                temperatureMin: `${Math.round(minTemp)}°C`,
+                temperatureMax: `${Math.round(maxTemp)}°C`,
+                condition
             };
         } catch (error) {
             console.error('Error fetching forecast data:', error);
             // Fallback auf saisonale Schätzung
-            return this.getTypicalWeatherForSeason(targetDate);
+            const fallback = this.getTypicalWeatherForSeason(targetDate);
+            return {
+                temperatureMin: fallback.temperatureMin,
+                temperatureMax: fallback.temperatureMax,
+                condition: fallback.condition
+            };
         }
     }
 
@@ -137,19 +157,17 @@ export class WeatherService {
 
     private getTypicalWeatherForSeason(date: Date): WeatherData {
         const month = date.getMonth() + 1;
-
+        let temp: string;
+        let condition: string;
         if (month >= 12 || month <= 2) {
-            // Winter
-            return { temperature: '3°C', condition: 'Bewölkt' };
+            temp = '3°C'; condition = 'Bewölkt';
         } else if (month >= 3 && month <= 5) {
-            // Frühling
-            return { temperature: '12°C', condition: 'Trocken' };
+            temp = '12°C'; condition = 'Trocken';
         } else if (month >= 6 && month <= 8) {
-            // Sommer
-            return { temperature: '22°C', condition: 'Sonnig' };
+            temp = '22°C'; condition = 'Sonnig';
         } else {
-            // Herbst
-            return { temperature: '10°C', condition: 'Bewölkt' };
+            temp = '10°C'; condition = 'Bewölkt';
         }
+        return { temperatureMin: temp, temperatureMax: temp, condition };
     }
 }
