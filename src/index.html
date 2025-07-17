@@ -408,18 +408,22 @@ document.addEventListener('DOMContentLoaded', function() {
                     `;
                 }
 
-                let wzCheckboxHtml = `
-                    <div class="wz-checkbox-wrapper">
-                        <label>
-                            <input type="checkbox" id="wz_anreise_${index}" name="wz_anreise_${index}" class="wz-checkbox-anreise">
-                            Anreise
-                        </label>
-                        <label style="margin-left:10px;">
-                            <input type="checkbox" id="wz_heimreise_${index}" name="wz_heimreise_${index}" class="wz-checkbox-heimreise">
-                            Heimreise
-                        </label>
-                    </div>
-                `;
+                let wzCheckboxHtml = '';
+                // Checkboxen NUR anzeigen, wenn NICHT Bautagesbericht
+                if (documentType !== 'bautagesbericht') {
+                    wzCheckboxHtml = `
+                        <div class="wz-checkbox-wrapper">
+                            <label>
+                                <input type="checkbox" id="wz_anreise_${index}" name="wz_anreise_${index}" class="wz-checkbox-anreise">
+                                Anreise
+                            </label>
+                            <label style="margin-left:10px;">
+                                <input type="checkbox" id="wz_heimreise_${index}" name="wz_heimreise_${index}" class="wz-checkbox-heimreise">
+                                Heimreise
+                            </label>
+                        </div>
+                    `;
+                }
 
                 // ✕ Button nur für zusätzliche Einträge (nicht für den ersten)
                 let removeButtonHtml = '';

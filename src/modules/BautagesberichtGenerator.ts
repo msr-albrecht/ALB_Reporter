@@ -298,7 +298,7 @@ export class BautagesberichtGenerator {
                             children: [new TextRun({ text: "Kunde/Rechnungsanschrift:", bold: true, size: 22 })],
                         }),
                         new Paragraph({
-                            children: [new TextRun({ text: requestData.kunde, bold: true, size: 22 })],
+                            children: [new TextRun({ text: requestData.kunde, size: 22 })],
                         }),
                     ],
                     columnSpan: 23,
@@ -392,7 +392,7 @@ export class BautagesberichtGenerator {
                     children: [new Paragraph({ children: [new TextRun({ text: "Datum:", size: 22 })] })],
                 }),
                 new TableCell({
-                    children: [new Paragraph({ children: [new TextRun({ text: "Name", bold: true, size: 26 })] })],
+                    children: [new Paragraph({ children: [new TextRun({ text: "Name", size: 26 })] })],
                     columnSpan: 9,
                 }),
                 new TableCell({
@@ -468,7 +468,10 @@ export class BautagesberichtGenerator {
                         columnSpan: 2,
                     }),
                     new TableCell({
-                        children: [new Paragraph({ children: [new TextRun({ text: `min: ${weatherData.temperatureMin} max: ${weatherData.temperatureMax}`, size: 20 })] })],
+                        children: [
+                            new Paragraph({ children: [new TextRun({ text: `min: ${weatherData.temperatureMin}`, size: 20 })] }),
+                            new Paragraph({ children: [new TextRun({ text: `max: ${weatherData.temperatureMax}`, size: 20 })] })
+                        ],
                         columnSpan: 3,
                     }),
                     new TableCell({
