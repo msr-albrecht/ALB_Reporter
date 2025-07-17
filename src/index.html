@@ -232,6 +232,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // Get the required fields for regie documents
         const betreffField = document.getElementById('betreff');
         const regieleistungenField = document.getElementById('regieleistungen');
+        const durchgefuehrteArbeitenField = document.getElementById('bautages_durchgefuehrte_arbeiten');
 
         // Show sections for regiebericht and regieantrag
         if (documentType === 'regiebericht' || documentType === 'regieantrag') {
@@ -245,6 +246,8 @@ document.addEventListener('DOMContentLoaded', function() {
             // Set required attributes for regie documents
             if (betreffField) betreffField.required = true;
             if (regieleistungenField) regieleistungenField.required = true;
+            // Remove required from bautages_durchgefuehrte_arbeiten
+            if (durchgefuehrteArbeitenField) durchgefuehrteArbeitenField.required = false;
         } else if (documentType === 'bautagesbericht') {
             if (materialSection) materialSection.style.display = 'none';
             if (regieTextFields) regieTextFields.style.display = 'none';
@@ -253,9 +256,8 @@ document.addEventListener('DOMContentLoaded', function() {
             if (baugatesTextFields) baugatesTextFields.style.display = 'block'; // Show for bautagesbericht
             if (globalDateContainer) globalDateContainer.style.display = 'block'; // Anzeigen bei Bautagesbericht
 
-            // Remove required attributes for bautagesbericht
-            if (betreffField) betreffField.required = false;
-            if (regieleistungenField) regieleistungenField.required = false;
+            // Set required for bautages_durchgefuehrte_arbeiten
+            if (durchgefuehrteArbeitenField) durchgefuehrteArbeitenField.required = true;
         } else {
             if (materialSection) materialSection.style.display = 'none';
             if (regieTextFields) regieTextFields.style.display = 'none';
@@ -267,6 +269,7 @@ document.addEventListener('DOMContentLoaded', function() {
             // Remove required attributes for other document types
             if (betreffField) betreffField.required = false;
             if (regieleistungenField) regieleistungenField.required = false;
+            if (durchgefuehrteArbeitenField) durchgefuehrteArbeitenField.required = false;
         }
 
         // Update mitarbeiter display
@@ -465,10 +468,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 const dateFromId = `arbeitsdatum_von_${index}`;
                 const startzeitId = `startzeit_${index}`;
                 const endzeitId = `endzeit_${index}`;
-
-                const dateInput = document.getElementById(dateFromId);
-                const startInput = document.getElementById(startzeitId);
-                const endInput = document.getElementById(endzeitId);
                 const wzAnreise = document.getElementById(`wz_anreise_${index}`);
                 const wzHeimreise = document.getElementById(`wz_heimreise_${index}`);
 
