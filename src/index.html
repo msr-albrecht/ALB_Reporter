@@ -10,8 +10,8 @@
 <div class="container">
     <nav class="navbar">
         <ul>
-            <li><a href="index.html">Berichtsgenerator</a></li>
-            <li><a href="csv-table.html">CSV-Tabelle</a></li>
+            <li><a class="nav-link" href="index.html">Berichtsgenerator</a></li>
+            <li><a class="nav-link" href="csv-table.html">CSV-Tabelle</a></li>
         </ul>
     </nav>
 
@@ -467,10 +467,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 const dateFromId = `arbeitsdatum_von_${index}`;
                 const startzeitId = `startzeit_${index}`;
                 const endzeitId = `endzeit_${index}`;
-
-                const dateInput = document.getElementById(dateFromId);
-                const startInput = document.getElementById(startzeitId);
-                const endInput = document.getElementById(endzeitId);
                 const wzAnreise = document.getElementById(`wz_anreise_${index}`);
                 const wzHeimreise = document.getElementById(`wz_heimreise_${index}`);
 
