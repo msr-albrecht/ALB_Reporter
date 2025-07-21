@@ -23,8 +23,7 @@
                 loadingDiv.style.display = 'none';
                 appContent.style.display = '';
                 loginBtn.style.display = 'none';
-                // Button und Text im Container anzeigen
-                document.getElementById('logoutBtn').style.display = '';
+                logoutBtn.style.display = '';
                 userInfo.textContent = 'Angemeldet als: ' + getUser();
                 // CSV-Tabellen-Knopf für Verwalter anzeigen
                 if (hasVerwalterRole()) {
@@ -40,19 +39,6 @@
         logoutBtn.onclick = logout;
     </script>
     <style>
-        #userContainer {
-            display: flex;
-            flex-direction: column;
-            align-items: flex-start;
-        }
-        #userInfo {
-            font-weight: bold;
-            color: #333;
-            font-size: 1.05rem;
-            margin-left: 0;
-            margin-bottom: 4px;
-            display: block;
-        }
         #logoutBtn {
             background: #d32f2f;
             color: #fff;
@@ -61,214 +47,221 @@
             padding: 5px 12px;
             font-size: 0.95rem;
             cursor: pointer;
-            margin-left: 0;
-            margin-top: 8px;
+            margin-left: 5px;
             transition: background 0.2s;
         }
         #logoutBtn:hover {
             background: #b71c1c;
         }
+        #userInfo {
+            font-weight: bold;
+            color: #333;
+            font-size: 1.05rem;
+            margin-left: 10px;
+            display: inline-block;
+            vertical-align: middle;
+        }
     </style>
 </head>
-<body id="mainBody" style="display:none;">
-    <div class="container">
-        <div id="loadingKeycloak">
-            <h2>Lade Authentifizierung ...</h2>
+<body style="display:none;" id="mainBody">
+<div id="loadingKeycloak" style="text-align:center;margin-top:100px;">
+    <h2>🔒 Anmeldung erforderlich...</h2>
+    <p>Bitte warten, Sie werden zur Anmeldung weitergeleitet.</p>
+</div>
+<div class="container" id="appContent" style="display:none;">
+    <div class="header">
+        <div class="header-content">
+            <div class="header-left">
+                <nav>
+                    <ul>
+                        <li id="csvTableNav" style="display:none;"><a href="./csv-table.html">CSV-Tabelle</a></li>
+                        <li><a href="http://139.162.154.60:8180" target="_blank">📁 Dateibrowser</a></li>
+                    </ul>
+                </nav>
+                <h1>📊 Berichtsgenerator</h1>
+                <p>Erstellen Sie professionelle Berichte mit automatischer Nummerierung</p>
+            </div>
+            <div class="header-right">
+                <button id="loginBtn" style="display:none;">Anmelden</button>
+                <div id="userContainer" style="margin: 15px 0;">
+                    <div id="userInfo"></div>
+                    <button id="logoutBtn" style="display:none; margin-top:8px; margin-left:0;">Abmelden</button>
+                </div>
+                <div class="report-number-input">
+                    <label for="customReportNumber">Berichtsnummer:</label>
+                    <input type="number" id="customReportNumber" name="customReportNumber"
+                           placeholder="Auto" min="1" max="9999"
+                           title="Benutzerdefinierte Berichtsnummer (optional)">
+                    <small>Optional: Startnummer für den Bericht</small>
+                </div>
+            </div>
         </div>
-        <div id="appContent" style="display:none;">
-            <div class="header">
-                <div class="header-content">
-                    <div class="header-left">
-                        <nav>
-                            <ul>
-                                <li id="csvTableNav" style="display:none;"><a href="./csv-table.html">CSV-Tabelle</a></li>
-                                <li><a href="http://139.162.154.60:8180" target="_blank">📁 Dateibrowser</a></li>
-                            </ul>
-                        </nav>
-                        <h1>📊 Berichtsgenerator</h1>
-                        <p>Erstellen Sie professionelle Berichte mit automatischer Nummerierung</p>
-                    </div>
-                    <div class="header-right">
-                        <button id="loginBtn" style="display:none;">Anmelden</button>
-                        <div id="userContainer" style="margin: 15px 0;">
-                            <div id="userInfo"></div>
-                            <button id="logoutBtn" style="display:none; margin-top:8px; margin-left:0;">Abmelden</button>
+    </div>
+
+    <form id="berichtForm">
+        <div class="form-group">
+            <label for="documentType">Dokumenttyp *</label>
+            <select id="documentType" name="documentType" required>
+                <option value="">Bitte wählen Sie einen Dokumenttyp...</option>
+                <option value="bautagesbericht">📊 Bautagesbericht</option>
+                <option value="regiebericht">📋 Regiebericht</option>
+                <option value="regieantrag">📝 Regieantrag</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label for="kuerzel">Kunde/Projekt *</label>
+            <select id="kuerzel" name="kuerzel" required>
+                <option value="">Bitte wählen Sie ein Kürzel...</option>
+            </select>
+        </div>
+
+        <!-- Globales Datumsfeld nur für Bautagesberichte -->
+        <div class="form-group" id="globalDateContainer" style="display: none;">
+            <label for="globalDatum">Datum</label>
+            <input type="date" id="globalDatum" name="globalDatum" style="width: 200px;">
+        </div>
+
+        <div class="form-group">
+            <label>Mitarbeiter</label>
+
+            <div class="multi-select-container">
+                <div class="multi-select-header" id="mitarbeiterHeader">
+                    <span class="placeholder">Mitarbeiter auswählen...</span>
+                    <span class="arrow">▼</span>
+                </div>
+                <div class="multi-select-dropdown" id="mitarbeiterDropdown">
+                    <div class="loading">Lade Mitarbeiter...</div>
+                </div>
+                <input type="hidden" id="selectedMitarbeiter" name="selectedMitarbeiter">
+            </div>
+            <div id="selectedMitarbeiterList" class="selected-mitarbeiter-list"></div>
+        </div>
+
+        <!-- Material Felder für Regiebericht/Regieantrag -->
+        <div id="materialSection" class="material-section" style="display: none;">
+            <h3 class="material-title">📦 Materialangaben (Optional)</h3>
+            <div id="materialList" class="material-list">
+                <div class="material-item" data-index="0">
+                    <div class="material-inputs">
+                        <div class="material-input-group">
+                            <label for="materialMenge_0">Menge</label>
+                            <input type="number" id="materialMenge_0" name="materialMenge_0" min="0" step="0.01" placeholder="z.B. 5">
                         </div>
-                        <div class="report-number-input">
-                            <label for="customReportNumber">Berichtsnummer:</label>
-                            <input type="number" id="customReportNumber" name="customReportNumber"
-                                   placeholder="Auto" min="1" max="9999"
-                                   title="Benutzerdefinierte Berichtsnummer (optional)">
-                            <small>Optional: Startnummer für den Bericht</small>
+                        <div class="material-input-group">
+                            <label for="materialEH_0">Einheit</label>
+                            <input type="text" id="materialEH_0" name="materialEH_0" placeholder="z.B. STK, m, kg" maxlength="10">
+                        </div>
+                        <div class="material-input-group material-description">
+                            <label for="materialBeschreibung_0">Materialbeschreibung</label>
+                            <input type="text" id="materialBeschreibung_0" name="materialBeschreibung_0" placeholder="z.B. Kabel NYM-J 3x1,5mm²">
+                        </div>
+                        <div class="material-actions">
+                            <button type="button" class="btn-remove-material" onclick="removeMaterialItem(0)" style="display: none;">✕</button>
                         </div>
                     </div>
                 </div>
             </div>
+            <button type="button" id="addMaterialBtn" class="btn-add-material">➕ Material hinzufügen</button>
+        </div>
 
-            <form id="berichtForm">
-                <div class="form-group">
-                    <label for="documentType">Dokumenttyp *</label>
-                    <select id="documentType" name="documentType" required>
-                        <option value="">Bitte wählen Sie einen Dokumenttyp...</option>
+        <!-- Betreff und Regieleistungen Felder für Regiebericht/Regieantrag -->
+        <div id="regieMainFields" class="regie-main-fields" style="display: none;">
+            <div class="form-group">
+                <label for="betreff">Betreff *</label>
+                <input type="text" id="betreff" name="betreff" placeholder="Betreff des Regieberichts/Regieantrags..." required>
+            </div>
+
+            <div class="form-group">
+                <label for="regieleistungen">Regieleistungen / Leistungsänderungen *</label>
+                <textarea id="regieleistungen" name="regieleistungen" placeholder="Beschreibung der Regieleistungen oder Leistungsänderungen..." required></textarea>
+            </div>
+        </div>
+
+        <!-- Spezifische Textfelder für Regiebericht/Regieantrag -->
+        <div id="regieTextFields" class="regie-text-fields" style="display: none;">
+            <h3 class="regie-title">📝 Zusätzliche Angaben</h3>
+
+            <div class="form-group">
+                <label for="behinderungen">Behinderungen/Erschwernisse/Begehungen/Abnahme</label>
+                <textarea id="behinderungen" name="behinderungen" placeholder="Beschreibung von Behinderungen oder Erschwernissen..."></textarea>
+            </div>
+
+            <div class="form-group">
+                <label for="bedenkanmeldung">Bedenkanmeldung/Hinweise an den AG</label>
+                <textarea id="bedenkanmeldung" name="bedenkanmeldung" placeholder="Bedenkanmeldungen oder Hinweise an den Auftraggeber..."></textarea>
+            </div>
+        </div>
+
+        <!-- Spezifische Textfelder für Bautagesbericht -->
+        <div id="bautagesTextFields" class="bautages-text-fields" style="display: none;">
+            <div class="form-group">
+                <label for="bautages_durchgefuehrte_arbeiten">Durchgeführte Arbeiten *</label>
+                <textarea id="bautages_durchgefuehrte_arbeiten" name="bautages_durchgefuehrte_arbeiten" placeholder="Beschreibung der durchgeführten Arbeiten..." required></textarea>
+            </div>
+            <h3 class="bautages-title">📝 Zusätzliche Angaben</h3>
+            <div class="form-group">
+                <label for="bautages_bedenkanmeldung">Bedenkanmeldung/Hinweise an den AG</label>
+                <textarea id="bautages_bedenkanmeldung" name="bautages_bedenkanmeldung" placeholder="Bedenkanmeldungen oder Hinweise an den Auftraggeber..."></textarea>
+            </div>
+            <div class="form-group">
+                <label for="bautages_behinderungen">Behinderungen/Erschwernisse/Begehungen/Abnahme</label>
+                <textarea id="bautages_behinderungen" name="bautages_behinderungen" placeholder="Beschreibung von Behinderungen oder Erschwernissen..."></textarea>
+            </div>
+        </div>
+
+        <button type="submit" class="btn-submit">
+            📄 Bericht erstellen
+        </button>
+
+        <div id="successMessage" class="success-message">
+            <strong>✅ Erfolg!</strong> Ihr Bericht wurde erfolgreich erstellt und gespeichert.
+        </div>
+    </form>
+
+    <div class="reports-section">
+        <div class="reports-header">
+            <h2>📋 Gespeicherte Berichte</h2>
+            <button id="showReportsBtn" class="btn-show">Berichte anzeigen</button>
+        </div>
+
+        <div id="reportsFilters" class="reports-filters" style="display: none;">
+            <div class="filter-controls">
+                <div class="filter-group">
+                    <label for="documentTypeFilter" data-icon="📊">Dokumenttyp:</label>
+                    <select id="documentTypeFilter">
+                        <option value="">Alle Typen</option>
                         <option value="bautagesbericht">📊 Bautagesbericht</option>
                         <option value="regiebericht">📋 Regiebericht</option>
                         <option value="regieantrag">📝 Regieantrag</option>
                     </select>
                 </div>
 
-                <div class="form-group">
-                    <label for="kuerzel">Kunde/Projekt *</label>
-                    <select id="kuerzel" name="kuerzel" required>
-                        <option value="">Bitte wählen Sie ein Kürzel...</option>
+                <div class="filter-group">
+                    <label for="projectFilter" data-icon="🏢">Projekt:</label>
+                    <select id="projectFilter">
+                        <option value="">Alle Projekte</option>
                     </select>
                 </div>
 
-                <!-- Globales Datumsfeld nur für Bautagesberichte -->
-                <div class="form-group" id="globalDateContainer" style="display: none;">
-                    <label for="globalDatum">Datum</label>
-                    <input type="date" id="globalDatum" name="globalDatum" style="width: 200px;">
-                </div>
-
-                <div class="form-group">
-                    <label>Mitarbeiter</label>
-
-                    <div class="multi-select-container">
-                        <div class="multi-select-header" id="mitarbeiterHeader">
-                            <span class="placeholder">Mitarbeiter auswählen...</span>
-                            <span class="arrow">▼</span>
-                        </div>
-                        <div class="multi-select-dropdown" id="mitarbeiterDropdown">
-                            <div class="loading">Lade Mitarbeiter...</div>
-                        </div>
-                        <input type="hidden" id="selectedMitarbeiter" name="selectedMitarbeiter">
-                    </div>
-                    <div id="selectedMitarbeiterList" class="selected-mitarbeiter-list"></div>
-                </div>
-
-                <!-- Material Felder für Regiebericht/Regieantrag -->
-                <div id="materialSection" class="material-section" style="display: none;">
-                    <h3 class="material-title">📦 Materialangaben (Optional)</h3>
-                    <div id="materialList" class="material-list">
-                        <div class="material-item" data-index="0">
-                            <div class="material-inputs">
-                                <div class="material-input-group">
-                                    <label for="materialMenge_0">Menge</label>
-                                    <input type="number" id="materialMenge_0" name="materialMenge_0" min="0" step="0.01" placeholder="z.B. 5">
-                            </div>
-                            <div class="material-input-group">
-                                <label for="materialEH_0">Einheit</label>
-                                <input type="text" id="materialEH_0" name="materialEH_0" placeholder="z.B. STK, m, kg" maxlength="10">
-                            </div>
-                            <div class="material-input-group material-description">
-                                <label for="materialBeschreibung_0">Materialbeschreibung</label>
-                                <input type="text" id="materialBeschreibung_0" name="materialBeschreibung_0" placeholder="z.B. Kabel NYM-J 3x1,5mm²">
-                            </div>
-                            <div class="material-actions">
-                                <button type="button" class="btn-remove-material" onclick="removeMaterialItem(0)" style="display: none;">✕</button>
-                            </div>
-                        </div>
-                    </div>
-                    <button type="button" id="addMaterialBtn" class="btn-add-material">➕ Material hinzufügen</button>
-                </div>
-
-                <!-- Betreff und Regieleistungen Felder für Regiebericht/Regieantrag -->
-                <div id="regieMainFields" class="regie-main-fields" style="display: none;">
-                    <div class="form-group">
-                        <label for="betreff">Betreff *</label>
-                        <input type="text" id="betreff" name="betreff" placeholder="Betreff des Regieberichts/Regieantrags..." required>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="regieleistungen">Regieleistungen / Leistungsänderungen *</label>
-                        <textarea id="regieleistungen" name="regieleistungen" placeholder="Beschreibung der Regieleistungen oder Leistungsänderungen..." required></textarea>
-                    </div>
-                </div>
-
-                <!-- Spezifische Textfelder für Regiebericht/Regieantrag -->
-                <div id="regieTextFields" class="regie-text-fields" style="display: none;">
-                    <h3 class="regie-title">📝 Zusätzliche Angaben</h3>
-
-                    <div class="form-group">
-                        <label for="behinderungen">Behinderungen/Erschwernisse/Begehungen/Abnahme</label>
-                        <textarea id="behinderungen" name="behinderungen" placeholder="Beschreibung von Behinderungen oder Erschwernissen..."></textarea>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="bedenkanmeldung">Bedenkanmeldung/Hinweise an den AG</label>
-                        <textarea id="bedenkanmeldung" name="bedenkanmeldung" placeholder="Bedenkanmeldungen oder Hinweise an den Auftraggeber..."></textarea>
-                    </div>
-                </div>
-
-                <!-- Spezifische Textfelder für Bautagesbericht -->
-                <div id="bautagesTextFields" class="bautages-text-fields" style="display: none;">
-                    <div class="form-group">
-                        <label for="bautages_durchgefuehrte_arbeiten">Durchgeführte Arbeiten *</label>
-                        <textarea id="bautages_durchgefuehrte_arbeiten" name="bautages_durchgefuehrte_arbeiten" placeholder="Beschreibung der durchgeführten Arbeiten..." required></textarea>
-                    </div>
-                    <h3 class="bautages-title">📝 Zusätzliche Angaben</h3>
-                    <div class="form-group">
-                        <label for="bautages_bedenkanmeldung">Bedenkanmeldung/Hinweise an den AG</label>
-                        <textarea id="bautages_bedenkanmeldung" name="bautages_bedenkanmeldung" placeholder="Bedenkanmeldungen oder Hinweise an den Auftraggeber..."></textarea>
-                    </div>
-                    <div class="form-group">
-                        <label for="bautages_behinderungen">Behinderungen/Erschwernisse/Begehungen/Abnahme</label>
-                        <textarea id="bautages_behinderungen" name="bautages_behinderungen" placeholder="Beschreibung von Behinderungen oder Erschwernissen..."></textarea>
-                    </div>
-                </div>
-
-                <button type="submit" class="btn-submit">
-                    📄 Bericht erstellen
-                </button>
-
-                <div id="successMessage" class="success-message">
-                    <strong>✅ Erfolg!</strong> Ihr Bericht wurde erfolgreich erstellt und gespeichert.
-                </div>
-            </form>
-
-            <div class="reports-section">
-                <div class="reports-header">
-                    <h2>📋 Gespeicherte Berichte</h2>
-                    <button id="showReportsBtn" class="btn-show">Berichte anzeigen</button>
-                </div>
-
-                <div id="reportsFilters" class="reports-filters" style="display: none;">
-                    <div class="filter-controls">
-                        <div class="filter-group">
-                            <label for="documentTypeFilter" data-icon="📊">Dokumenttyp:</label>
-                            <select id="documentTypeFilter">
-                                <option value="">Alle Typen</option>
-                                <option value="bautagesbericht">📊 Bautagesbericht</option>
-                                <option value="regiebericht">📋 Regiebericht</option>
-                                <option value="regieantrag">📝 Regieantrag</option>
-                            </select>
-                        </div>
-
-                        <div class="filter-group">
-                            <label for="projectFilter" data-icon="🏢">Projekt:</label>
-                            <select id="projectFilter">
-                                <option value="">Alle Projekte</option>
-                            </select>
-                        </div>
-
-                        <div class="filter-group">
-                            <label for="searchFilter" data-icon="🔍">Suche:</label>
-                            <input type="text" id="searchFilter" placeholder="Nach Name oder Kunde suchen...">
-                        </div>
-                    </div>
-
-                    <div class="filter-actions">
-                        <button id="clearFiltersBtn" class="btn-clear">🔄 Filter zurücksetzen</button>
-                    </div>
-                </div>
-
-                <div id="reportsList" class="reports-list">
-                    <div class="loading">Lade Berichte...</div>
+                <div class="filter-group">
+                    <label for="searchFilter" data-icon="🔍">Suche:</label>
+                    <input type="text" id="searchFilter" placeholder="Nach Name oder Kunde suchen...">
                 </div>
             </div>
+
+            <div class="filter-actions">
+                <button id="clearFiltersBtn" class="btn-clear">🔄 Filter zurücksetzen</button>
+            </div>
+        </div>
+
+        <div id="reportsList" class="reports-list">
+            <div class="loading">Lade Berichte...</div>
         </div>
     </div>
+</div>
 
-    <script>
+<script>
 document.addEventListener('DOMContentLoaded', function() {
     // Keycloak Konfiguration
     // Entfernt: loginBtn.onclick, logoutBtn.onclick, updateUI, keycloak.init
