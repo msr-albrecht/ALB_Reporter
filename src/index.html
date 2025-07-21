@@ -233,38 +233,8 @@
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     // Keycloak Konfiguration
-    const loginBtn = document.getElementById('loginBtn');
-    const logoutBtn = document.getElementById('logoutBtn');
-    const userInfo = document.getElementById('userInfo');
-    const csvTableNav = document.getElementById('csvTableNav');
-
-    function updateUI() {
-        if (keycloak.authenticated) {
-            loginBtn.style.display = 'none';
-            logoutBtn.style.display = 'inline-block';
-            userInfo.textContent = 'Angemeldet als: ' + (keycloak.tokenParsed.preferred_username || '');
-            // Rollenprüfung
-            if (keycloak.hasRealmRole('verwalter')) {
-                csvTableNav.style.display = 'inline-block';
-            } else {
-                csvTableNav.style.display = 'none';
-            }
-        } else {
-            loginBtn.style.display = 'inline-block';
-            logoutBtn.style.display = 'none';
-            userInfo.textContent = '';
-            csvTableNav.style.display = 'none';
-        }
-    }
-
-    loginBtn.onclick = function() { keycloak.login(); };
-    logoutBtn.onclick = function() { keycloak.logout(); };
-
-    keycloak.init({ onLoad: 'login-required' }).then(function(authenticated) {
-        updateUI();
-    });
-
-    console.log('Frontend loaded');
+    // Entfernt: loginBtn.onclick, logoutBtn.onclick, updateUI, keycloak.init
+    // Die Authentifizierung und UI-Steuerung erfolgt jetzt ausschließlich über das Modul keycloak-login.js im <head>.
 
     const form = document.getElementById('berichtForm');
     const successMessage = document.getElementById('successMessage');
