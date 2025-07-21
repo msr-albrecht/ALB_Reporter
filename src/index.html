@@ -25,6 +25,11 @@
                 loginBtn.style.display = 'none';
                 logoutBtn.style.display = '';
                 userInfo.textContent = 'Angemeldet als: ' + getUser();
+                // CSV-Tabellen-Knopf für Verwalter anzeigen
+                if (hasVerwalterRole()) {
+                    const csvTableNav = document.getElementById('csvTableNav');
+                    if (csvTableNav) csvTableNav.style.display = '';
+                }
             } else {
                 loadingDiv.innerHTML = '<h2>Fehler bei der Anmeldung</h2><p>Bitte versuchen Sie es später erneut.</p>';
             }
