@@ -67,6 +67,7 @@ services:
       - "8443:8443"
     volumes:
       - ssl-data:/etc/x509/https
+      - keycloak_data:/opt/keycloak/data
     environment:
       - KC_HOSTNAME_STRICT=false
       - KC_HOSTNAME_STRICT_HTTPS=false
@@ -85,6 +86,7 @@ volumes:
   db-data:
   ssl-data:
   file-data:
+  keycloak_data:
 
 networks:
   berichte-network:

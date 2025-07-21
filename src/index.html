@@ -5,8 +5,33 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Berichtsgenerator</title>
     <link rel="stylesheet" href="style.css" type="text/css">
-    <!-- Keycloak-JS lokal eingebunden -->
-    <script src="keycloak-js/keycloak-login.js"></script>
+    <!-- Keycloak-JS als Modul eingebunden -->
+    <script type="module" src="keycloak-js/keycloak-login.js"></script>
+    <script type="module">
+        import { initKeycloak, login, logout, getUser, hasVerwalterRole } from './keycloak-js/keycloak-login.js';
+        const body = document.getElementById('mainBody');
+        const loadingDiv = document.getElementById('loadingKeycloak');
+        const appContent = document.getElementById('appContent');
+        const loginBtn = document.getElementById('loginBtn');
+        const logoutBtn = document.getElementById('logoutBtn');
+        const userInfo = document.getElementById('userInfo');
+        async function startAuth() {
+            const authenticated = await initKeycloak();
+            if (authenticated) {
+                body.style.display = '';
+                loadingDiv.style.display = 'none';
+                appContent.style.display = '';
+                loginBtn.style.display = 'none';
+                logoutBtn.style.display = '';
+                userInfo.textContent = 'Angemeldet als: ' + getUser();
+            } else {
+                loadingDiv.innerHTML = '<h2>Fehler bei der Anmeldung</h2><p>Bitte versuchen Sie es später erneut.</p>';
+            }
+        }
+        startAuth();
+        loginBtn.onclick = login;
+        logoutBtn.onclick = logout;
+    </script>
 </head>
 <body style="display:none;" id="mainBody">
 <div id="loadingKeycloak" style="text-align:center;margin-top:100px;">
@@ -203,44 +228,6 @@
         </div>
     </div>
 </div>
-
-<script type="module">
-import { initKeycloak, login, logout, getUser, hasVerwalterRole } from './keycloak-js/keycloak-login.js';
-
-const mainBody = document.getElementById('mainBody');
-const appContent = document.getElementById('appContent');
-const loadingKeycloak = document.getElementById('loadingKeycloak');
-const loginBtn = document.getElementById('loginBtn');
-const logoutBtn = document.getElementById('logoutBtn');
-const userInfo = document.getElementById('userInfo');
-const csvTableNav = document.getElementById('csvTableNav');
-
-(async () => {
-    const authenticated = await initKeycloak();
-    if (authenticated) {
-        loadingKeycloak.style.display = 'none';
-        appContent.style.display = 'block';
-        mainBody.style.display = 'block';
-        userInfo.textContent = 'Angemeldet als: ' + (getUser() || '');
-        loginBtn.style.display = 'none';
-        logoutBtn.style.display = 'inline-block';
-        if (hasVerwalterRole()) {
-            csvTableNav.style.display = 'inline-block';
-        } else {
-            csvTableNav.style.display = 'none';
-        }
-    } else {
-        loadingKeycloak.innerHTML = '<h2>Fehler bei der Anmeldung!</h2>';
-        loginBtn.style.display = 'inline-block';
-        logoutBtn.style.display = 'none';
-        userInfo.textContent = '';
-        csvTableNav.style.display = 'none';
-    }
-})();
-
-loginBtn.onclick = function() { login(); };
-logoutBtn.onclick = function() { logout(); };
-</script>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
