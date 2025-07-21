@@ -70,14 +70,23 @@ export class BautagesberichtGenerator {
     }
 
     async generateWordDocument(reportData: ReportData, requestData: CreateReportRequest): Promise<{ filePath: string; fileName: string }> {
-        const currentDate = new Date();
-        const fileName = `BTB_${reportData.kuerzel}_${requestData.arbeitsdatum.replace(/-/g, '_')}_${reportData.reportNumber.toString().padStart(3, '0')}.docx`;
-        const filePath = path.join(this.outputDir, fileName);
+        const arbeitsdatum = new Date(requestData.arbeitsdatum);
+        const jahr = arbeitsdatum.getFullYear();
+        const kalenderwoche = this.getCurrentWeek(arbeitsdatum);
+        const projektkuerzel = reportData.kuerzel;
+        const fileName = `BTB_${projektkuerzel}_${requestData.arbeitsdatum.replace(/-/g, '_')}_${reportData.reportNumber.toString().padStart(3, '0')}.docx`;
+        const outputDir = path.join('storage', 'berichte', projektkuerzel, 'bautagesberichte', jahr.toString(), kalenderwoche.toString());
+        if (!fs.existsSync(outputDir)) {
+            fs.mkdirSync(outputDir, { recursive: true });
+        }
+        const filePath = path.join(outputDir, fileName);
 
         try {
             const mitarbeiterList = JSON.parse(reportData.mitarbeiter);
             const individualDates = requestData.individualDates || {};
             const individualTimes = requestData.individualTimes || {};
+
+            const currentDate = arbeitsdatum;
 
             const mainTable = await this.createMainTable(
                 reportData,

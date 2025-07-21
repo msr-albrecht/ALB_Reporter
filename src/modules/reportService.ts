@@ -52,15 +52,8 @@ export class ReportService {
         this.dbManager = new DatabaseManager();
         this.fileServer = new FileServerService();
 
-        const tempDir = '/tmp/berichte_temp';
-        this.ensureDirectoryExists(tempDir);
-
-        this.bautagesberichtGenerator = new BautagesberichtGenerator({
-            outputDir: tempDir
-        });
-        this.regieGenerator = new RegieGenerator({
-            outputDir: tempDir
-        });
+        this.bautagesberichtGenerator = new BautagesberichtGenerator();
+        this.regieGenerator = new RegieGenerator();
 
         console.log('✅ File-Server-Integration aktiviert');
     }

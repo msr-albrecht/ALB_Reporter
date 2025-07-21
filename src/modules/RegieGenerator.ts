@@ -194,17 +194,17 @@ export class RegieGenerator {
     }
 
     async generateWordDocument(reportData: ReportData, requestData: CreateReportRequest): Promise<{ filePath: string; fileName: string }> {
-        const currentDate = new Date();
+        const arbeitsdatum = new Date(requestData.arbeitsdatum);
+        const jahr = arbeitsdatum.getFullYear();
+        const kalenderwoche = this.getCurrentWeek(arbeitsdatum);
+        const projektkuerzel = reportData.kuerzel;
         const isRegieantrag = reportData.documentType === 'regieantrag';
-
         const filePrefix = isRegieantrag ? 'RGA' : 'RGE';
-        const outputDir = isRegieantrag ? './generated_reports/regieantraege' : './generated_reports/regieberichte';
-
+        const outputDir = path.join('storage', 'berichte', projektkuerzel, isRegieantrag ? 'regieantraege' : 'regieberichte', jahr.toString(), kalenderwoche.toString());
         if (!fs.existsSync(outputDir)) {
             fs.mkdirSync(outputDir, { recursive: true });
         }
-
-        const fileName = `${filePrefix}_${reportData.kuerzel}_${requestData.arbeitsdatum.replace(/-/g, '_')}_${reportData.reportNumber.toString().padStart(3, '0')}.docx`;
+        const fileName = `${filePrefix}_${projektkuerzel}_${requestData.arbeitsdatum.replace(/-/g, '_')}_${reportData.reportNumber.toString().padStart(3, '0')}.docx`;
         const filePath = path.join(outputDir, fileName);
 
         try {
@@ -225,6 +225,8 @@ export class RegieGenerator {
                 acc[item.kuerzel] = item.wz;
                 return acc;
             }, {} as {[key: string]: string});
+
+            const currentDate = arbeitsdatum;
 
             const mainTable = this.createMainTable(
                 reportData,
@@ -538,7 +540,7 @@ export class RegieGenerator {
                 new TableCell({
                     children: [
                         new Paragraph({
-                            children: [new TextRun({ text: "Ort:", bold: true, size: 22 })],
+                            children: [new TextRun({ text: "Ort", bold: true, size: 22 })],
                         }),
                         new Paragraph({
                             children: [new TextRun({ text: `${requestData.strasseBaustelle}, ${requestData.ortBaustelle}`, size: 22 })],
