@@ -172,7 +172,6 @@ function createStoragePath(documentType, kuerzel, arbeitsdatum) {
     // arbeitsdatum als YYYY-MM-DD erwartet
     const dateObj = arbeitsdatum ? new Date(arbeitsdatum) : new Date();
     const year = dateObj.getFullYear();
-    // Kalenderwoche berechnen
     function getWeekNumber(d) {
         d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
         const dayNum = d.getUTCDay() || 7;
@@ -181,15 +180,14 @@ function createStoragePath(documentType, kuerzel, arbeitsdatum) {
         return Math.ceil((((d.getTime() - yearStart.getTime()) / 86400000) + 1)/7);
     }
     const kalenderwoche = getWeekNumber(dateObj);
-    // Kürzel ist jetzt das Projektkürzel (z.B. KLA, ASAM, STH, ...)
-    const safeKuerzel = (kuerzel || 'MISC').replace(/[^a-zA-Z0-9]/g, '');
+    // Kürzel wird jetzt direkt übernommen, nicht mehr AUTO
+    const safeKuerzel = kuerzel ? kuerzel.replace(/[^a-zA-Z0-9]/g, '') : 'MISC';
     const typeFolder = {
         'bautagesbericht': 'bautagesberichte',
         'regiebericht': 'regieberichte',
         'regieantrag': 'regieantraege',
         'document': 'documents'
     }[documentType] || 'documents';
-    // Neuer Pfad: berichte/Kürzel/Typ/Jahr/Kalenderwoche
     return path.join('berichte', safeKuerzel, typeFolder, year.toString(), kalenderwoche.toString());
 }
 
@@ -199,15 +197,13 @@ function generateFileName(originalName, documentType, kuerzel, arbeitsdatum) {
     const timeStr = dateObj.toTimeString().split(' ')[0].replace(/:/g, '_');
     const extension = path.extname(originalName);
     const baseName = path.basename(originalName, extension);
-
     const prefix = {
         'bautagesbericht': 'BTB',
         'regiebericht': 'REG',
         'regieantrag': 'RGA'
     }[documentType] || 'DOC';
-
-    // Kürzel ist jetzt das Projektkürzel
-    const safeKuerzel = (kuerzel || 'MISC').replace(/[^a-zA-Z0-9]/g, '');
+    // Kürzel wird jetzt direkt übernommen, nicht mehr AUTO
+    const safeKuerzel = kuerzel ? kuerzel.replace(/[^a-zA-Z0-9]/g, '') : 'MISC';
     return `${prefix}_${safeKuerzel}_${dateStr}_${timeStr}_${baseName}${extension}`;
 }
 
