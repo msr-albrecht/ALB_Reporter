@@ -181,6 +181,7 @@ function createStoragePath(documentType, kuerzel, arbeitsdatum) {
         return Math.ceil((((d.getTime() - yearStart.getTime()) / 86400000) + 1)/7);
     }
     const kalenderwoche = getWeekNumber(dateObj);
+    // Kürzel ist jetzt das Projektkürzel (z.B. KLA, ASAM, STH, ...)
     const safeKuerzel = (kuerzel || 'MISC').replace(/[^a-zA-Z0-9]/g, '');
     const typeFolder = {
         'bautagesbericht': 'bautagesberichte',
@@ -188,8 +189,8 @@ function createStoragePath(documentType, kuerzel, arbeitsdatum) {
         'regieantrag': 'regieantraege',
         'document': 'documents'
     }[documentType] || 'documents';
-    // Neuer Pfad: berichte/ASAM(Kürzel)/Typ/Jahr/Kalenderwoche
-    return path.join('berichte', `ASAM(${safeKuerzel})`, typeFolder, year.toString(), kalenderwoche.toString());
+    // Neuer Pfad: berichte/Kürzel/Typ/Jahr/Kalenderwoche
+    return path.join('berichte', safeKuerzel, typeFolder, year.toString(), kalenderwoche.toString());
 }
 
 function generateFileName(originalName, documentType, kuerzel, arbeitsdatum) {
@@ -205,8 +206,9 @@ function generateFileName(originalName, documentType, kuerzel, arbeitsdatum) {
         'regieantrag': 'RGA'
     }[documentType] || 'DOC';
 
+    // Kürzel ist jetzt das Projektkürzel
     const safeKuerzel = (kuerzel || 'MISC').replace(/[^a-zA-Z0-9]/g, '');
-    return `${prefix}_ASAM(${safeKuerzel})_${dateStr}_${timeStr}_${baseName}${extension}`;
+    return `${prefix}_${safeKuerzel}_${dateStr}_${timeStr}_${baseName}${extension}`;
 }
 
 // Routes
