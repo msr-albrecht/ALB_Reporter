@@ -1,6 +1,4 @@
-import Keycloak from 'keycloak-js';
-
-const keycloak = new Keycloak({
+const keycloak = new window.Keycloak({
     url: 'https://139.162.154.60:8443',
     realm: 'berichte',
     clientId: 'berichte-app'

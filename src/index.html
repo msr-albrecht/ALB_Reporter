@@ -5,7 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Berichtsgenerator</title>
     <link rel="stylesheet" href="style.css" type="text/css">
-    <!-- Keycloak-JS als Modul eingebunden -->
+    <!-- Keycloak-JS als CDN eingebunden -->
+    <script src="https://cdn.jsdelivr.net/npm/keycloak-js@24.0.4/dist/keycloak.min.js"></script>
+    <!-- Keycloak-Login-Modul -->
     <script type="module">
         import { initKeycloak, login, logout, getUser, hasVerwalterRole } from './keycloak-js/keycloak-login.js';
         const body = document.getElementById('mainBody');
