@@ -110,24 +110,28 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // File Storage Configuration
 const STORAGE_BASE_DIR = process.env.STORAGE_BASE_DIR || path.join(process.cwd(), 'storage');
-const TEMP_DIR = path.join(STORAGE_BASE_DIR, 'temp');
 
 // Verzeichnisse sicherstellen
 await fs.ensureDir(STORAGE_BASE_DIR);
-await fs.ensureDir(TEMP_DIR);
 
 console.log(`📁 Storage-Verzeichnis: ${STORAGE_BASE_DIR}`);
-console.log(`🔧 Temporäres Verzeichnis: ${TEMP_DIR}`);
 
-// Multer Configuration
+// Multer-Konfiguration: Zielverzeichnis dynamisch nach documentType/kuerzel
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
-        cb(null, TEMP_DIR);
+        // Zielpfad dynamisch bestimmen
+        const { documentType, kuerzel } = req.body;
+        let targetDir = STORAGE_BASE_DIR;
+        if (documentType && kuerzel) {
+            targetDir = path.join(STORAGE_BASE_DIR, 'berichte', kuerzel, documentType);
+            fs.ensureDirSync(targetDir);
+        }
+        cb(null, targetDir);
     },
     filename: (req, file, cb) => {
         const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
         const extension = path.extname(file.originalname);
-        cb(null, `temp-${uniqueSuffix}${extension}`);
+        cb(null, `${uniqueSuffix}${extension}`);
     }
 });
 
