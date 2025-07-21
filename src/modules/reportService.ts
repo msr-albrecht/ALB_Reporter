@@ -76,14 +76,44 @@ export class ReportService {
             const reportId = uuidv4();
             const createdAt = new Date().toISOString();
 
+            // Kalenderwoche und Jahr berechnen
+            const arbeitsDate = new Date(request.arbeitsdatum);
+            const jahr = arbeitsDate.getFullYear();
+            // Kalenderwoche berechnen
+            function getWeekNumber(d: Date) {
+                d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+                const dayNum = d.getUTCDay() || 7;
+                d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+                const yearStart = new Date(Date.UTC(d.getUTCFullYear(),0,1));
+                return Math.ceil((((d.getTime() - yearStart.getTime()) / 86400000) + 1)/7);
+            }
+            const kalenderwoche = getWeekNumber(arbeitsDate);
+            const kuerzel = request.kuerzel.trim();
+            // Pfad je nach Dokumenttyp generieren
+            let subDir = '';
+            switch (request.documentType) {
+                case 'bautagesbericht':
+                    subDir = 'bautagesberichte';
+                    break;
+                case 'regiebericht':
+                    subDir = 'regieberichte';
+                    break;
+                case 'regieantrag':
+                    subDir = 'regieantraege';
+                    break;
+                default:
+                    subDir = 'berichte';
+            }
+            const savePath = path.join('berichte', `ASAM(${kuerzel})`, subDir, `${jahr}`, `${kalenderwoche}`);
+
             const reportData: Omit<ReportData, 'reportNumber'> = {
                 id: reportId,
                 documentType: request.documentType,
-                kuerzel: request.kuerzel.trim(),
+                kuerzel: kuerzel,
                 mitarbeiter: JSON.stringify(request.mitarbeiter),
                 createdAt,
                 fileName: '',
-                filePath: '',
+                filePath: savePath,
                 arbeitsdatum: request.arbeitsdatum,
                 arbeitszeit: request.arbeitszeit,
                 ...(request.zusatzInformationen && { zusatzInformationen: request.zusatzInformationen })
