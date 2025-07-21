@@ -30,12 +30,12 @@ export class FileServerService {
         }
     }
 
-    async uploadFile(filePath: string, fileName: string, documentType: string = 'document'): Promise<UploadResult> {
+    async uploadFile(filePath: string, fileName: string, documentType: string = 'document', kuerzel: string): Promise<UploadResult> {
         try {
             const formData = new FormData();
             formData.append('files', fs.createReadStream(filePath));
             formData.append('documentType', documentType);
-            formData.append('kuerzel', 'AUTO');
+            formData.append('kuerzel', kuerzel); // Projektkürzel übergeben
             formData.append('originalFileName', fileName); // Sende den gewünschten Dateinamen
 
             console.log(`📤 Sende Datei an File-Server: ${fileName}`);
