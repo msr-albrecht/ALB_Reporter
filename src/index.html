@@ -6,7 +6,7 @@
     <title>Berichtsgenerator</title>
     <link rel="stylesheet" href="style.css" type="text/css">
     <!-- Keycloak-JS lokal eingebunden -->
-    <script src="keycloak-js/keycloak.min.js"></script>
+    <script src="keycloak-js/keycloak-login.js"></script>
 </head>
 <body style="display:none;" id="mainBody">
 <div id="loadingKeycloak" style="text-align:center;margin-top:100px;">
@@ -204,31 +204,45 @@
     </div>
 </div>
 
-<script>
-// Keycloak initialisieren und Seite erst nach Login anzeigen
+<script type="module">
+import { initKeycloak, login, logout, getUser, hasVerwalterRole } from './keycloak-js/keycloak-login.js';
+
 const mainBody = document.getElementById('mainBody');
 const appContent = document.getElementById('appContent');
 const loadingKeycloak = document.getElementById('loadingKeycloak');
+const loginBtn = document.getElementById('loginBtn');
+const logoutBtn = document.getElementById('logoutBtn');
+const userInfo = document.getElementById('userInfo');
+const csvTableNav = document.getElementById('csvTableNav');
 
-const keycloak = new Keycloak({
-    url: 'https://139.162.154.60:8443',
-    realm: 'berichte',
-    clientId: 'berichte-app'
-});
-
-keycloak.init({ onLoad: 'login-required' }).then(function(authenticated) {
+(async () => {
+    const authenticated = await initKeycloak();
     if (authenticated) {
         loadingKeycloak.style.display = 'none';
         appContent.style.display = 'block';
         mainBody.style.display = 'block';
-        // ...hier kann die UI wie gehabt weiter initialisiert werden...
+        userInfo.textContent = 'Angemeldet als: ' + (getUser() || '');
+        loginBtn.style.display = 'none';
+        logoutBtn.style.display = 'inline-block';
+        if (hasVerwalterRole()) {
+            csvTableNav.style.display = 'inline-block';
+        } else {
+            csvTableNav.style.display = 'none';
+        }
     } else {
         loadingKeycloak.innerHTML = '<h2>Fehler bei der Anmeldung!</h2>';
+        loginBtn.style.display = 'inline-block';
+        logoutBtn.style.display = 'none';
+        userInfo.textContent = '';
+        csvTableNav.style.display = 'none';
     }
-}).catch(function() {
-    loadingKeycloak.innerHTML = '<h2>Keycloak konnte nicht geladen werden!</h2>';
-});
+})();
 
+loginBtn.onclick = function() { login(); };
+logoutBtn.onclick = function() { logout(); };
+</script>
+
+<script>
 document.addEventListener('DOMContentLoaded', function() {
     // Keycloak Konfiguration
     const loginBtn = document.getElementById('loginBtn');
