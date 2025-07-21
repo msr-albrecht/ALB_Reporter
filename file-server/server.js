@@ -168,27 +168,34 @@ const upload = multer({
 });
 
 // Utility Functions
-function createStoragePath(documentType, kuerzel) {
-    const currentDate = new Date();
-    const year = currentDate.getFullYear();
-    const month = (currentDate.getMonth() + 1).toString().padStart(2, '0');
-    // Tag-Ebene entfernt - nur noch Jahr/Monat
-
+function createStoragePath(documentType, kuerzel, arbeitsdatum) {
+    // arbeitsdatum als YYYY-MM-DD erwartet
+    const dateObj = arbeitsdatum ? new Date(arbeitsdatum) : new Date();
+    const year = dateObj.getFullYear();
+    // Kalenderwoche berechnen
+    function getWeekNumber(d) {
+        d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+        const dayNum = d.getUTCDay() || 7;
+        d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+        const yearStart = new Date(Date.UTC(d.getUTCFullYear(),0,1));
+        return Math.ceil((((d.getTime() - yearStart.getTime()) / 86400000) + 1)/7);
+    }
+    const kalenderwoche = getWeekNumber(dateObj);
+    const safeKuerzel = (kuerzel || 'MISC').replace(/[^a-zA-Z0-9]/g, '');
     const typeFolder = {
         'bautagesbericht': 'bautagesberichte',
         'regiebericht': 'regieberichte',
         'regieantrag': 'regieantraege',
         'document': 'documents'
     }[documentType] || 'documents';
-
-    // Ohne Tag-Ebene: berichte/bautagesberichte/2025/07/
-    return path.join('berichte', typeFolder, year.toString(), month);
+    // Neuer Pfad: berichte/ASAM(Kürzel)/Typ/Jahr/Kalenderwoche
+    return path.join('berichte', `ASAM(${safeKuerzel})`, typeFolder, year.toString(), kalenderwoche.toString());
 }
 
-function generateFileName(originalName, documentType, kuerzel) {
-    const currentDate = new Date();
-    const dateStr = currentDate.toISOString().split('T')[0].replace(/-/g, '_');
-    const timeStr = currentDate.toTimeString().split(' ')[0].replace(/:/g, '_');
+function generateFileName(originalName, documentType, kuerzel, arbeitsdatum) {
+    const dateObj = arbeitsdatum ? new Date(arbeitsdatum) : new Date();
+    const dateStr = dateObj.toISOString().split('T')[0].replace(/-/g, '_');
+    const timeStr = dateObj.toTimeString().split(' ')[0].replace(/:/g, '_');
     const extension = path.extname(originalName);
     const baseName = path.basename(originalName, extension);
 
@@ -199,7 +206,7 @@ function generateFileName(originalName, documentType, kuerzel) {
     }[documentType] || 'DOC';
 
     const safeKuerzel = (kuerzel || 'MISC').replace(/[^a-zA-Z0-9]/g, '');
-    return `${prefix}_${safeKuerzel}_${dateStr}_${timeStr}_${baseName}${extension}`;
+    return `${prefix}_ASAM(${safeKuerzel})_${dateStr}_${timeStr}_${baseName}${extension}`;
 }
 
 // Routes
