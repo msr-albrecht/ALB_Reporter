@@ -47,7 +47,6 @@ app.use('*', (req: Request, res: Response) => {
 });
 
 app.use((err: any, req: Request, res: Response, _next: NextFunction) => {
-    console.error('Unhandled error:', err);
     res.status(500).json({
         success: false,
         message: 'Interner Serverfehler'
@@ -56,8 +55,6 @@ app.use((err: any, req: Request, res: Response, _next: NextFunction) => {
 
 // Funktion zum Erstellen selbstsignierter SSL-Zertifikate mit node-forge
 function createSelfSignedCertificate(): { key: string; cert: string } {
-    console.log('Erstelle neue SSL-Zertifikate mit node-forge...');
-
     // Erstelle Schlüsselpaar
     const keys = forge.pki.rsa.generateKeyPair(2048);
 
@@ -88,7 +85,7 @@ function createSelfSignedCertificate(): { key: string; cert: string } {
             name: 'keyUsage',
             keyCertSign: true,
             digitalSignature: true,
-              nonRepudiation: true,
+            nonRepudiation: true,
             keyEncipherment: true,
             dataEncipherment: true
         },
@@ -105,13 +102,9 @@ function createSelfSignedCertificate(): { key: string; cert: string } {
     // Signiere das Zertifikat
     cert.sign(keys.privateKey);
 
-    // Konvertiere zu PEM-Format
-    const privateKeyPem = forge.pki.privateKeyToPem(keys.privateKey);
-    const certificatePem = forge.pki.certificateToPem(cert);
-
     return {
-        key: privateKeyPem,
-        cert: certificatePem
+        key: forge.pki.privateKeyToPem(keys.privateKey),
+        cert: forge.pki.certificateToPem(cert)
     };
 }
 
@@ -125,10 +118,7 @@ try {
         key: fs.readFileSync(path.join(sslPath, 'key.pem'), 'utf8'),
         cert: fs.readFileSync(path.join(sslPath, 'cert.pem'), 'utf8')
     };
-    console.log('Vorhandene SSL-Zertifikate geladen.');
 } catch (error) {
-    console.log('Keine SSL-Zertifikate gefunden. Erstelle neue selbstsignierte Zertifikate...');
-
     // Erstelle SSL-Verzeichnis falls es nicht existiert
     if (!fs.existsSync(sslPath)) {
         fs.mkdirSync(sslPath, { recursive: true });
@@ -142,33 +132,12 @@ try {
     fs.writeFileSync(path.join(sslPath, 'cert.pem'), certificates.cert);
 
     httpsOptions = certificates;
-    console.log('Neue selbstsignierte SSL-Zertifikate erstellt und gespeichert.');
 }
 
 // Starte HTTPS Server
 if (httpsOptions) {
-    https.createServer(httpsOptions, app).listen(PORT, () => {
-        const serverUrl = process.env.SERVER_URL || `https://localhost:${PORT}`;
-        console.log(`🔒 HTTPS Server läuft auf Port ${PORT}`);
-        console.log(`🌐 Öffentliche URL: ${serverUrl}`);
-        console.log(`🔌 API: ${serverUrl}/api`);
-        console.log(`📁 Dateiserver: ${serverUrl}/files`);
-
-        if (serverUrl.includes('localhost')) {
-            console.log('⚠️  Hinweis: Bei selbstsignierten Zertifikaten wird der Browser eine Sicherheitswarnung anzeigen.');
-            console.log('   Klicken Sie auf "Erweitert" und dann "Weiter zu localhost (unsicher)"');
-        } else {
-            console.log('✅ Server ist öffentlich erreichbar unter der konfigurierten URL');
-        }
-    });
+    https.createServer(httpsOptions, app).listen(PORT, () => {});
 } else {
     // Fallback zu HTTP wenn HTTPS nicht funktioniert
-    const serverUrl = process.env.SERVER_URL || `http://localhost:${PORT}`;
-    console.error('❌ Fehler beim Laden der SSL-Zertifikate. Fallback zu HTTP...');
-    app.listen(PORT, () => {
-        console.log(`🔓 HTTP Server läuft auf Port ${PORT} (HTTPS-Fallback)`);
-        console.log(`🌐 Öffentliche URL: ${serverUrl}`);
-        console.log(`🔌 API: ${serverUrl}/api`);
-        console.log(`📁 Dateiserver: ${serverUrl}/files`);
-    });
+    app.listen(PORT, () => {});
 }

@@ -11,13 +11,13 @@ export interface CsvData {
     ortBaustelle: string;
     auftragsNr: string;
     vergNr: string;
-    wz: string; // Wegzeit hinzugefügt
+    wz: string;
 }
 
 export class CsvReader {
     private csvPath: string;
 
-    constructor(csvPath: string = './dummy.csv') {
+    constructor(csvPath: string = './projekte.csv') {
         this.csvPath = csvPath;
     }
 
@@ -39,11 +39,10 @@ export class CsvReader {
                     ortBaustelle: columns[6]?.trim() || '',
                     auftragsNr: columns[7]?.trim() || '',
                     vergNr: columns[8]?.trim() || '',
-                    wz: columns[9]?.trim() || '' // WZ-Spalte hinzugefügt
+                    wz: columns[9]?.trim() || ''
                 };
             });
         } catch (error) {
-            console.error('Error reading CSV file:', error);
             return [];
         }
     }

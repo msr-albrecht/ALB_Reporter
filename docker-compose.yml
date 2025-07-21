@@ -46,9 +46,9 @@ services:
     image: filebrowser/filebrowser:latest
     container_name: alb_filebrowser_container
     ports:
-      - "8080:80" # Filebrowser Web-UI
+      - "8180:80" # Port geändert von 8080 auf 8180
     volumes:
-      - file-data:/srv # Zugriff auf die gleichen Dateien wie file-server
+      - file-data:/srv
     environment:
       PUID: 1000
       PGID: 1000
