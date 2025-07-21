@@ -140,7 +140,8 @@ export class ReportService {
 
             const { filePath, fileName } = await generator.generateWordDocument(savedReport, request);
 
-            const uploadResult = await this.fileServer.uploadFile(filePath, fileName, request.documentType);
+            // Übergabe des Kürzels an uploadFile
+            const uploadResult = await this.fileServer.uploadFile(filePath, fileName, request.documentType, kuerzel);
 
             if (!uploadResult.success) {
                 if (fs.existsSync(filePath)) {
