@@ -5,15 +5,21 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Berichtsgenerator</title>
     <link rel="stylesheet" href="style.css" type="text/css">
+    <!-- Keycloak-JS lokal eingebunden -->
+    <script src="/keycloak-js/keycloak.min.js"></script>
 </head>
-<body>
-<div class="container">
+<body style="display:none;" id="mainBody">
+<div id="loadingKeycloak" style="text-align:center;margin-top:100px;">
+    <h2>🔒 Anmeldung erforderlich...</h2>
+    <p>Bitte warten, Sie werden zur Anmeldung weitergeleitet.</p>
+</div>
+<div class="container" id="appContent" style="display:none;">
     <div class="header">
         <div class="header-content">
             <div class="header-left">
                 <nav>
                     <ul>
-                        <li><a href="./csv-table.html">CSV-Tabelle</a></li>
+                        <li id="csvTableNav" style="display:none;"><a href="./csv-table.html">CSV-Tabelle</a></li>
                         <li><a href="http://139.162.154.60:8180" target="_blank">📁 Dateibrowser</a></li>
                     </ul>
                 </nav>
@@ -21,6 +27,9 @@
                 <p>Erstellen Sie professionelle Berichte mit automatischer Nummerierung</p>
             </div>
             <div class="header-right">
+                <button id="loginBtn" style="display:none;">Anmelden</button>
+                <button id="logoutBtn" style="display:none;">Abmelden</button>
+                <span id="userInfo"></span>
                 <div class="report-number-input">
                     <label for="customReportNumber">Berichtsnummer:</label>
                     <input type="number" id="customReportNumber" name="customReportNumber"
@@ -196,7 +205,63 @@
 </div>
 
 <script>
+// Keycloak initialisieren und Seite erst nach Login anzeigen
+const mainBody = document.getElementById('mainBody');
+const appContent = document.getElementById('appContent');
+const loadingKeycloak = document.getElementById('loadingKeycloak');
+
+const keycloak = new Keycloak({
+    url: 'https://139.162.154.60:8443',
+    realm: 'berichte',
+    clientId: 'berichte-app'
+});
+
+keycloak.init({ onLoad: 'login-required' }).then(function(authenticated) {
+    if (authenticated) {
+        loadingKeycloak.style.display = 'none';
+        appContent.style.display = 'block';
+        mainBody.style.display = 'block';
+        // ...hier kann die UI wie gehabt weiter initialisiert werden...
+    } else {
+        loadingKeycloak.innerHTML = '<h2>Fehler bei der Anmeldung!</h2>';
+    }
+}).catch(function() {
+    loadingKeycloak.innerHTML = '<h2>Keycloak konnte nicht geladen werden!</h2>';
+});
+
 document.addEventListener('DOMContentLoaded', function() {
+    // Keycloak Konfiguration
+    const loginBtn = document.getElementById('loginBtn');
+    const logoutBtn = document.getElementById('logoutBtn');
+    const userInfo = document.getElementById('userInfo');
+    const csvTableNav = document.getElementById('csvTableNav');
+
+    function updateUI() {
+        if (keycloak.authenticated) {
+            loginBtn.style.display = 'none';
+            logoutBtn.style.display = 'inline-block';
+            userInfo.textContent = 'Angemeldet als: ' + (keycloak.tokenParsed.preferred_username || '');
+            // Rollenprüfung
+            if (keycloak.hasRealmRole('verwalter')) {
+                csvTableNav.style.display = 'inline-block';
+            } else {
+                csvTableNav.style.display = 'none';
+            }
+        } else {
+            loginBtn.style.display = 'inline-block';
+            logoutBtn.style.display = 'none';
+            userInfo.textContent = '';
+            csvTableNav.style.display = 'none';
+        }
+    }
+
+    loginBtn.onclick = function() { keycloak.login(); };
+    logoutBtn.onclick = function() { keycloak.logout(); };
+
+    keycloak.init({ onLoad: 'login-required' }).then(function(authenticated) {
+        updateUI();
+    });
+
     console.log('Frontend loaded');
 
     const form = document.getElementById('berichtForm');
