@@ -29,9 +29,7 @@
                 if (result.success && Array.isArray(result.data)) {
                     hot.loadData(result.data);
                 }
-            } catch (e) {
-                // Fehlerbehandlung kann ergänzt werden
-            }
+            } catch (e) {}
         }
         async function loadArbeiterTable() {
             try {
