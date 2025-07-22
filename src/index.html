@@ -490,7 +490,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (documentType !== 'bautagesbericht') {
                     wzCheckboxHtml = `
                         <div class="wz-checkbox-wrapper">
-                            <label>Nur Der Fahrer!</label>
                             <label>
                                 <input type="checkbox" id="wz_anreise_${index}" name="wz_anreise_${index}" class="wz-checkbox-anreise">
                                 Anreise
@@ -503,7 +502,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     `;
                 }
 
-                // ✕ Button nur für zusätzliche Einträge (nicht für den ersten)
                 let removeButtonHtml = '';
                 if (documentType !== 'bautagesbericht' && entryIndex > 0) {
                     removeButtonHtml = `<button type="button" class="btn-remove-mitarbeiter-eintrag" data-mitarbeiter-name="${mitarbeiter.name}" data-mitarbeiter-id="${index}" style="margin-left: 10px;">✕</button>`;
