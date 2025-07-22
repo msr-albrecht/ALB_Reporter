@@ -26,54 +26,28 @@ export class RegieGenerator {
     }
 
     private formatDate(dateString: string): string {
-        if (!dateString || dateString.trim() === '') {
-            return '';
-        }
-
-        try {
-            // Prüfe ob es ein Datumsbereich ist (z.B. "2025-01-01 - 2025-01-01")
-            if (dateString.includes(' - ')) {
-                const parts = dateString.split(' - ').map(d => d.trim());
-                if (parts.length >= 2 && parts[0] && parts[1]) {
-                    const formattedStart = this.formatSingleDate(parts[0]);
-                    const formattedEnd = this.formatSingleDate(parts[1]);
-
-                    // Wenn Start- und Enddatum gleich sind, nur einmal anzeigen
-                    if (formattedStart === formattedEnd) {
-                        return formattedStart;
-                    }
-                    return `${formattedStart} - ${formattedEnd}`;
-                }
+        if (!dateString || dateString.trim() === '') return '';
+        if (dateString.includes(' - ')) {
+            const parts = dateString.split(' - ').map(d => d.trim());
+            if (parts.length >= 2 && parts[0] && parts[1]) {
+                const formattedStart = this.formatSingleDate(parts[0]);
+                const formattedEnd = this.formatSingleDate(parts[1]);
+                if (formattedStart === formattedEnd) return formattedStart;
+                return `${formattedStart} - ${formattedEnd}`;
             }
-
-            // Einzelnes Datum formatieren
-            return this.formatSingleDate(dateString);
-        } catch (error) {
-            console.error('Error formatting date:', dateString, error);
-            return dateString;
         }
+        return this.formatSingleDate(dateString);
     }
 
     private formatSingleDate(dateString: string): string {
-        if (!dateString || dateString.trim() === '') {
-            return '';
-        }
-
-        try {
-            const date = new Date(dateString);
-            if (isNaN(date.getTime())) {
-                return dateString;
-            }
-
-            return date.toLocaleDateString('de-DE', {
-                day: '2-digit',
-                month: '2-digit',
-                year: 'numeric'
-            });
-        } catch (error) {
-            console.error('Error formatting single date:', dateString, error);
-            return dateString;
-        }
+        if (!dateString || dateString.trim() === '') return '';
+        const date = new Date(dateString);
+        if (isNaN(date.getTime())) return dateString;
+        return date.toLocaleDateString('de-DE', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric'
+        });
     }
 
     private getCurrentWeek(date: Date): number {
@@ -83,54 +57,34 @@ export class RegieGenerator {
     }
 
     private calculateDuration(timeRange: string, dateRange?: string): string {
-        if (!timeRange || !timeRange.includes("-")) {
-            throw new Error("Invalid time range format. Expected 'HH:mm-HH:mm'.");
-        }
-
+        if (!timeRange || !timeRange.includes("-")) throw new Error("Invalid time range format. Expected 'HH:mm-HH:mm'.");
         const [start, end] = timeRange.split('-');
-        if (!start || !end) {
-            throw new Error("Invalid time range. Start or end time missing.");
-        }
-
+        if (!start || !end) throw new Error("Invalid time range. Start or end time missing.");
         const [startHours, startMinutes] = start.split(':').map(Number);
         const [endHours, endMinutes] = end.split(':').map(Number);
-
         const startDate = new Date(0, 0, 0, startHours, startMinutes);
         const endDate = new Date(0, 0, 0, endHours, endMinutes);
-
         let diffMs = endDate.getTime() - startDate.getTime();
-        if (diffMs < 0) {
-            diffMs += 24 * 60 * 60 * 1000;
-        }
-
+        if (diffMs < 0) diffMs += 24 * 60 * 60 * 1000;
         const diffMinutes = Math.floor(diffMs / (1000 * 60));
         const dailyHours = Math.floor(diffMinutes / 60);
         const dailyMinutes = diffMinutes % 60;
-
         let numberOfDays = 1;
         if (dateRange && dateRange.includes(' - ')) {
             const [startDateStr, endDateStr] = dateRange.split(' - ');
             if (startDateStr && endDateStr) {
-                try {
-                    const startDay = new Date(startDateStr);
-                    const endDay = new Date(endDateStr);
-
-                    if (!isNaN(startDay.getTime()) && !isNaN(endDay.getTime())) {
-                        const timeDiff = endDay.getTime() - startDay.getTime();
-                        const daysDiff = Math.ceil(timeDiff / (1000 * 3600 * 24));
-                        numberOfDays = daysDiff + 1;
-                    }
-                } catch (error) {
-                    console.error('Error parsing date range:', error);
-                    numberOfDays = 1;
+                const startDay = new Date(startDateStr);
+                const endDay = new Date(endDateStr);
+                if (!isNaN(startDay.getTime()) && !isNaN(endDay.getTime())) {
+                    const timeDiff = endDay.getTime() - startDay.getTime();
+                    const daysDiff = Math.ceil(timeDiff / (1000 * 3600 * 24));
+                    numberOfDays = daysDiff + 1;
                 }
             }
         }
-
         const totalMinutes = (dailyHours * 60 + dailyMinutes) * numberOfDays;
         const totalHours = Math.floor(totalMinutes / 60);
         const remainingMinutes = totalMinutes % 60;
-
         const pad = (num: number) => num.toString().padStart(2, '0');
         return `${pad(totalHours)}:${pad(remainingMinutes)}`;
     }
@@ -138,47 +92,26 @@ export class RegieGenerator {
     private createMaterialTable(materials: any[]): Table {
         const headerRow = new TableRow({
             children: [
-                new TableCell({
-                    children: [new Paragraph({ children: [new TextRun({ text: "Menge", bold: true, size: 22 })] })],
-                }),
-                new TableCell({
-                    children: [new Paragraph({ children: [new TextRun({ text: "EH", bold: true, size: 22 })] })],
-                    columnSpan: 2,
-                }),
-                new TableCell({
-                    children: [new Paragraph({ children: [new TextRun({ text: "Materialbezeichnung", bold: true, size: 22 })] })],
-                    columnSpan: 10,
-                }),
+                new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Menge", bold: true, size: 22 })] })] }),
+                new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "EH", bold: true, size: 22 })] })], columnSpan: 2 }),
+                new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Materialbezeichnung", bold: true, size: 22 })] })], columnSpan: 10 }),
             ]
         });
-
         const materialRows = materials.length > 0 ? materials.map(material =>
             new TableRow({
                 children: [
-                    new TableCell({
-                        children: [new Paragraph({ children: [new TextRun({ text: material.menge || "", size: 20 })] })],
-                    }),
-                    new TableCell({
-                        children: [new Paragraph({ children: [new TextRun({ text: material.einheit || "", size: 20 })] })],
-                        columnSpan: 2,
-                    }),
-                    new TableCell({
-                        children: [new Paragraph({ children: [new TextRun({ text: material.beschreibung || "", size: 20 })] })],
-                        columnSpan: 10,
-                    }),
+                    new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: material.menge || "", size: 20 })] })] }),
+                    new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: material.einheit || "", size: 20 })] })], columnSpan: 2 }),
+                    new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: material.beschreibung || "", size: 20 })] })], columnSpan: 10 }),
                 ],
             })
         ) : [
             new TableRow({
                 children: [
-                    new TableCell({
-                        children: [new Paragraph({ children: [new TextRun({ text: "Keine Materialien angegeben", size: 20, italics: true })] })],
-                        columnSpan: 13,
-                    }),
+                    new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Keine Materialien angegeben", size: 20, italics: true })] })], columnSpan: 13 }),
                 ],
             })
         ];
-
         return new Table({
             width: { size: 100, type: WidthType.PERCENTAGE },
             borders: {
@@ -206,28 +139,21 @@ export class RegieGenerator {
         }
         const fileName = `${filePrefix}_${projektkuerzel}_${requestData.arbeitsdatum.replace(/-/g, '_')}_${reportData.reportNumber.toString().padStart(3, '0')}.docx`;
         const filePath = path.join(outputDir, fileName);
-
         try {
             const mitarbeiterList = JSON.parse(reportData.mitarbeiter);
             const documentTitle = isRegieantrag ? "Regieantrag" : "Regiebericht";
-
-            // Betreff aus regieTextData verwenden, falls vorhanden
             const regieTextDataFromRequest = requestData.regieTextData || {};
             const documentSubject = (regieTextDataFromRequest as any).betreff || (isRegieantrag ? "Antrag auf Regiearbeiten" : "");
-
             const individualDates = requestData.individualDates || {};
             const individualTimes = requestData.individualTimes || {};
             const wzDataFromRequest = requestData.wzData || {};
             const materials = requestData.materials || [];
-
             const csvData = await this.csvReader.readCsvData();
             const wzLookup = csvData.reduce((acc, item) => {
                 acc[item.kuerzel] = item.wz;
                 return acc;
             }, {} as {[key: string]: string});
-
             const currentDate = arbeitsdatum;
-
             const mainTable = this.createMainTable(
                 reportData,
                 requestData,
@@ -243,38 +169,20 @@ export class RegieGenerator {
                 documentSubject,
                 isRegieantrag
             );
-
             const header = this.createDocumentHeader();
             const footer = this.createDocumentFooter(isRegieantrag);
-
             const doc = new Document({
                 sections: [{
-                    headers: {
-                        default: header,
-                    },
-                    footers: {
-                        default: footer,
-                    },
-                    children: [
-                        mainTable,
-                        new Paragraph({
-                            children: [new TextRun({ text: "", size: 16 })],
-                            spacing: { after: 300 },
-                        }),
-                    ],
+                    headers: { default: header },
+                    footers: { default: footer },
+                    children: [mainTable, new Paragraph({ children: [new TextRun({ text: "", size: 16 })], spacing: { after: 300 } })],
                 }],
             });
-
             const buffer = await Packer.toBuffer(doc);
             fs.writeFileSync(filePath, buffer);
-
-            if (!fs.existsSync(filePath)) {
-                throw new Error('File was not created');
-            }
-
+            if (!fs.existsSync(filePath)) throw new Error('File was not created');
             return { filePath, fileName };
         } catch (error) {
-            console.error('Error during Word document generation:', error);
             throw error;
         }
     }
@@ -282,40 +190,24 @@ export class RegieGenerator {
     private createDocumentHeader(): Header {
         const logoPath = path.join(process.cwd(), 'photos', 'logo.jpg');
         const infoPath = path.join(process.cwd(), 'photos', 'albrechtInfo.jpg');
-
         let logoImageRun: ImageRun | null = null;
         let infoImageRun: ImageRun | null = null;
-
-        // Load logo image if exists
         if (fs.existsSync(logoPath)) {
             try {
                 logoImageRun = new ImageRun({
                     data: fs.readFileSync(logoPath),
-                    transformation: {
-                        width: 200,
-                        height: 60,
-                    },
+                    transformation: { width: 200, height: 60 },
                 });
-            } catch (error) {
-                console.error('Error loading logo image:', error);
-            }
+            } catch {}
         }
-
-        // Load info image if exists
         if (fs.existsSync(infoPath)) {
             try {
                 infoImageRun = new ImageRun({
                     data: fs.readFileSync(infoPath),
-                    transformation: {
-                        width: 180,
-                        height: 90,
-                    },
+                    transformation: { width: 180, height: 90 },
                 });
-            } catch (error) {
-                console.error('Error loading info image:', error);
-            }
+            } catch {}
         }
-
         return new Header({
             children: [
                 new Table({
@@ -333,19 +225,13 @@ export class RegieGenerator {
                             children: [
                                 new TableCell({
                                     children: [
-                                        ...(logoImageRun ? [new Paragraph({
-                                            children: [logoImageRun],
-                                            alignment: AlignmentType.LEFT
-                                        })] : []),
+                                        ...(logoImageRun ? [new Paragraph({ children: [logoImageRun], alignment: AlignmentType.LEFT })] : []),
                                     ],
                                     width: { size: 50, type: WidthType.PERCENTAGE },
                                 }),
                                 new TableCell({
                                     children: [
-                                        ...(infoImageRun ? [new Paragraph({
-                                            children: [infoImageRun],
-                                            alignment: AlignmentType.RIGHT
-                                        })] : []),
+                                        ...(infoImageRun ? [new Paragraph({ children: [infoImageRun], alignment: AlignmentType.RIGHT })] : []),
                                     ],
                                     width: { size: 50, type: WidthType.PERCENTAGE },
                                 }),
@@ -613,15 +499,11 @@ export class RegieGenerator {
         wzLookup: {[key: string]: string},
         reportData: ReportData
     ): TableRow[] {
-        // Anpassung: Jeder Eintrag in mitarbeiterList hat jetzt eine id (z.B. {id, name, qualifikation})
         return mitarbeiterList.map((mitarbeiter: any) => {
-            // Schlüssel für die individuellen Daten
             const key = `${mitarbeiter.name}_${mitarbeiter.id !== undefined ? mitarbeiter.id : ''}`;
             const employeeDate = individualDates[key] || requestData.arbeitsdatum;
             const employeeTime = individualTimes[key] || requestData.arbeitszeit;
             const regieTime = this.calculateDuration(employeeTime, employeeDate);
-
-            // NEU: Anreise/Heimreise-Checkboxen auswerten
             const wzInfo = wzDataFromRequest[key] || {};
             const anreise = !!wzInfo.anreise;
             const heimreise = !!wzInfo.heimreise;
@@ -633,7 +515,6 @@ export class RegieGenerator {
                     wzValue = (anreise && heimreise) ? (km * 2).toString() : km.toString();
                 }
             }
-
             return new TableRow({
                 children: [
                     new TableCell({

@@ -44,27 +44,21 @@ export class BautagesberichtGenerator {
         if (!timeRange || !timeRange.includes("-")) {
             throw new Error("Invalid time range format. Expected 'HH:mm-HH:mm'.");
         }
-
         const [start, end] = timeRange.split('-');
         if (!start || !end) {
             throw new Error("Invalid time range. Start or end time missing.");
         }
-
         const [startHours, startMinutes] = start.split(':').map(Number);
         const [endHours, endMinutes] = end.split(':').map(Number);
-
         const startDate = new Date(0, 0, 0, startHours, startMinutes);
         const endDate = new Date(0, 0, 0, endHours, endMinutes);
-
         let diffMs = endDate.getTime() - startDate.getTime();
         if (diffMs < 0) {
             diffMs += 24 * 60 * 60 * 1000;
         }
-
         const diffMinutes = Math.floor(diffMs / (1000 * 60));
         const hours = Math.floor(diffMinutes / 60);
         const minutes = diffMinutes % 60;
-
         const pad = (num: number) => num.toString().padStart(2, '0');
         return `${pad(hours)}:${pad(minutes)}`;
     }
@@ -80,14 +74,11 @@ export class BautagesberichtGenerator {
             fs.mkdirSync(outputDir, { recursive: true });
         }
         const filePath = path.join(outputDir, fileName);
-
         try {
             const mitarbeiterList = JSON.parse(reportData.mitarbeiter);
             const individualDates = requestData.individualDates || {};
             const individualTimes = requestData.individualTimes || {};
-
             const currentDate = arbeitsdatum;
-
             const mainTable = await this.createMainTable(
                 reportData,
                 requestData,
@@ -96,34 +87,22 @@ export class BautagesberichtGenerator {
                 individualTimes,
                 currentDate
             );
-
             const header = this.createDocumentHeader();
             const footer = this.createDocumentFooter();
-
             const doc = new Document({
                 sections: [{
-                    headers: {
-                        default: header,
-                    },
-                    footers: {
-                        default: footer,
-                    },
-                    children: [
-                        mainTable,
-                    ],
+                    headers: { default: header },
+                    footers: { default: footer },
+                    children: [mainTable],
                 }],
             });
-
             const buffer = await Packer.toBuffer(doc);
             fs.writeFileSync(filePath, buffer);
-
             if (!fs.existsSync(filePath)) {
                 throw new Error('File was not created');
             }
-
             return { filePath, fileName };
         } catch (error) {
-            console.error('Error during Word document generation:', error);
             throw error;
         }
     }
@@ -131,40 +110,24 @@ export class BautagesberichtGenerator {
     private createDocumentHeader(): Header {
         const logoPath = path.join(process.cwd(), 'photos', 'logo.jpg');
         const infoPath = path.join(process.cwd(), 'photos', 'albrechtInfo.jpg');
-
         let logoImageRun: ImageRun | null = null;
         let infoImageRun: ImageRun | null = null;
-
-        // Load logo image if exists
         if (fs.existsSync(logoPath)) {
             try {
                 logoImageRun = new ImageRun({
                     data: fs.readFileSync(logoPath),
-                    transformation: {
-                        width: 200,
-                        height: 60,
-                    },
+                    transformation: { width: 200, height: 60 },
                 });
-            } catch (error) {
-                console.error('Error loading logo image:', error);
-            }
+            } catch {}
         }
-
-        // Load info image if exists
         if (fs.existsSync(infoPath)) {
             try {
                 infoImageRun = new ImageRun({
                     data: fs.readFileSync(infoPath),
-                    transformation: {
-                        width: 180,
-                        height: 90,
-                    },
+                    transformation: { width: 180, height: 90 },
                 });
-            } catch (error) {
-                console.error('Error loading info image:', error);
-            }
+            } catch {}
         }
-
         return new Header({
             children: [
                 new Table({
@@ -182,19 +145,13 @@ export class BautagesberichtGenerator {
                             children: [
                                 new TableCell({
                                     children: [
-                                        ...(logoImageRun ? [new Paragraph({
-                                            children: [logoImageRun],
-                                            alignment: AlignmentType.LEFT
-                                        })] : []),
+                                        ...(logoImageRun ? [new Paragraph({ children: [logoImageRun], alignment: AlignmentType.LEFT })] : []),
                                     ],
                                     width: { size: 50, type: WidthType.PERCENTAGE },
                                 }),
                                 new TableCell({
                                     children: [
-                                        ...(infoImageRun ? [new Paragraph({
-                                            children: [infoImageRun],
-                                            alignment: AlignmentType.RIGHT
-                                        })] : []),
+                                        ...(infoImageRun ? [new Paragraph({ children: [infoImageRun], alignment: AlignmentType.RIGHT })] : []),
                                     ],
                                     width: { size: 50, type: WidthType.PERCENTAGE },
                                 }),
@@ -267,30 +224,20 @@ export class BautagesberichtGenerator {
     }
 
     private createHeaderRow(reportData: ReportData, requestData: CreateReportRequest): TableRow {
-        // Verwende das Arbeitsdatum aus dem Request anstatt des heutigen Datums
         const workDate = new Date(requestData.arbeitsdatum);
-
         return new TableRow({
             children: [
                 new TableCell({
                     children: [
-                        new Paragraph({
-                            children: [new TextRun({ text: "Bautagesbericht", bold: true, size: 28 })],
-                        }),
-                        new Paragraph({
-                            children: [new TextRun({ text: `Nr. ${reportData.reportNumber.toString().padStart(3, '0')}`, bold: true, size: 24 })],
-                        }),
+                        new Paragraph({ children: [new TextRun({ text: "Bautagesbericht", bold: true, size: 28 })] }),
+                        new Paragraph({ children: [new TextRun({ text: `Nr. ${reportData.reportNumber.toString().padStart(3, '0')}`, bold: true, size: 24 })] }),
                     ],
                     columnSpan: 14,
                 }),
                 new TableCell({
                     children: [
-                        new Paragraph({
-                            children: [new TextRun({ text: `Datum: ${this.formatDate(requestData.arbeitsdatum)}`, size: 22 })],
-                        }),
-                        new Paragraph({
-                            children: [new TextRun({ text: `KW: ${this.getCurrentWeek(workDate)}`, size: 22 })],
-                        }),
+                        new Paragraph({ children: [new TextRun({ text: `Datum: ${this.formatDate(requestData.arbeitsdatum)}`, size: 22 })] }),
+                        new Paragraph({ children: [new TextRun({ text: `KW: ${this.getCurrentWeek(workDate)}`, size: 22 })] }),
                     ],
                     columnSpan: 9,
                 }),
@@ -303,12 +250,8 @@ export class BautagesberichtGenerator {
             children: [
                 new TableCell({
                     children: [
-                        new Paragraph({
-                            children: [new TextRun({ text: "Kunde/Rechnungsanschrift:", bold: true, size: 22 })],
-                        }),
-                        new Paragraph({
-                            children: [new TextRun({ text: requestData.kunde, size: 22 })],
-                        }),
+                        new Paragraph({ children: [new TextRun({ text: "Kunde/Rechnungsanschrift:", bold: true, size: 22 })] }),
+                        new Paragraph({ children: [new TextRun({ text: requestData.kunde, size: 22 })] }),
                     ],
                     columnSpan: 23,
                 }),
@@ -321,23 +264,15 @@ export class BautagesberichtGenerator {
             children: [
                 new TableCell({
                     children: [
-                        new Paragraph({
-                            children: [new TextRun({ text: "Ort:", bold: true, size: 22 })],
-                        }),
-                        new Paragraph({
-                            children: [new TextRun({ text: `${requestData.strasseKunde}, ${requestData.ortKunde}`, size: 22 })],
-                        })
+                        new Paragraph({ children: [new TextRun({ text: "Ort:", bold: true, size: 22 })] }),
+                        new Paragraph({ children: [new TextRun({ text: `${requestData.strasseKunde}, ${requestData.ortKunde}`, size: 22 })] })
                     ],
                     columnSpan: 19,
                 }),
                 new TableCell({
                     children: [
-                        new Paragraph({
-                            children: [new TextRun({ text: "Auftrags-Nr.:", size: 22 })],
-                        }),
-                        new Paragraph({
-                            children: [new TextRun({ text: requestData.auftragsNr, size: 22 })],
-                        }),
+                        new Paragraph({ children: [new TextRun({ text: "Auftrags-Nr.:", size: 22 })] }),
+                        new Paragraph({ children: [new TextRun({ text: requestData.auftragsNr, size: 22 })] }),
                     ],
                     columnSpan: 4,
                 }),
@@ -350,12 +285,8 @@ export class BautagesberichtGenerator {
             children: [
                 new TableCell({
                     children: [
-                        new Paragraph({
-                            children: [new TextRun({ text: "Baustellenanschrift:", bold: true, size: 22 })],
-                        }),
-                        new Paragraph({
-                            children: [new TextRun({ text: requestData.baustelle, size: 22 })],
-                        }),
+                        new Paragraph({ children: [new TextRun({ text: "Baustellenanschrift:", bold: true, size: 22 })] }),
+                        new Paragraph({ children: [new TextRun({ text: requestData.baustelle, size: 22 })] }),
                     ],
                     columnSpan: 23,
                 }),
@@ -368,25 +299,15 @@ export class BautagesberichtGenerator {
             children: [
                 new TableCell({
                     children: [
-                        new Paragraph({
-                            children: [new TextRun({ text: "Ort:", bold: true, size: 22 })],
-                        }),
-                        new Paragraph({
-                            children: [new TextRun({ text: `${requestData.strasseBaustelle}, ${requestData.ortBaustelle}`, size: 22 })],
-                        }),
+                        new Paragraph({ children: [new TextRun({ text: "Ort:", bold: true, size: 22 })] }),
+                        new Paragraph({ children: [new TextRun({ text: `${requestData.strasseBaustelle}, ${requestData.ortBaustelle}`, size: 22 })] }),
                     ],
                     columnSpan: 19,
                 }),
                 new TableCell({
                     children: [
-                        new Paragraph({
-                            children: [new TextRun({
-                                text: "Verg.nr.", size: 22
-                            })]
-                        }),
-                        new Paragraph({
-                            children: [new TextRun({ text: requestData.vergNr, size: 22 })],
-                        }),
+                        new Paragraph({ children: [new TextRun({ text: "Verg.nr.", size: 22 })] }),
+                        new Paragraph({ children: [new TextRun({ text: requestData.vergNr, size: 22 })] }),
                     ],
                     columnSpan: 4,
                 }),
@@ -397,35 +318,16 @@ export class BautagesberichtGenerator {
     private createEmployeeHeaderRow(): TableRow {
         return new TableRow({
             children: [
-                new TableCell({
-                    children: [new Paragraph({ children: [new TextRun({ text: "Datum:", size: 22 })] })],
-                }),
-                new TableCell({
-                    children: [new Paragraph({ children: [new TextRun({ text: "Name", size: 26 })] })],
-                    columnSpan: 9,
-                }),
-                new TableCell({
-                    children: [new Paragraph({ children: [new TextRun({ text: "Qualifikation", size: 22 })] })],
-                    columnSpan: 4,
-                }),
-                new TableCell({
-                    children: [new Paragraph({ children: [new TextRun({ text: "N-Std. lt. Auftrag", size: 22 })] })],
-                    columnSpan: 2,
-                }),
-                new TableCell({
-                    children: [
-                        new Paragraph({ children: [new TextRun({ text: "Beginn", size: 22 })] }),
-                        new Paragraph({ children: [new TextRun({ text: "Ende", size: 22 })] }),
-                    ],
-                    columnSpan: 2,
-                }),
-                new TableCell({
-                    children: [new Paragraph({ children: [new TextRun({ text: "Temperatur", size: 22 })] })],
-                    columnSpan: 3,
-                }),
-                new TableCell({
-                    children: [new Paragraph({ children: [new TextRun({ text: "Wetter", size: 22 })] })],
-                }),
+                new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Datum:", size: 22 })] })] }),
+                new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Name", size: 26 })] })], columnSpan: 9 }),
+                new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Qualifikation", size: 22 })] })], columnSpan: 4 }),
+                new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "N-Std. lt. Auftrag", size: 22 })] })], columnSpan: 2 }),
+                new TableCell({ children: [
+                    new Paragraph({ children: [new TextRun({ text: "Beginn", size: 22 })] }),
+                    new Paragraph({ children: [new TextRun({ text: "Ende", size: 22 })] }),
+                ], columnSpan: 2 }),
+                new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Temperatur", size: 22 })] })], columnSpan: 3 }),
+                new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Wetter", size: 22 })] })] }),
             ],
         });
     }
@@ -437,55 +339,28 @@ export class BautagesberichtGenerator {
         requestData: CreateReportRequest
     ): Promise<TableRow[]> {
         return await Promise.all(mitarbeiterList.map(async (mitarbeiter: any, index: number) => {
-            // Für Bautagesberichte: Globales Datum verwenden (arbeitsdatum)
-            // Für andere Dokumenttypen: Individuelles Datum verwenden
             const employeeKey = `${mitarbeiter.name}_${index}`;
             let employeeDate: string;
-
             if (requestData.documentType === 'bautagesbericht') {
-                // Bei Bautagesberichten: Verwende das globale arbeitsdatum für alle Mitarbeiter
                 employeeDate = requestData.arbeitsdatum;
             } else {
-                // Bei anderen Dokumenttypen: Verwende individuelles Datum oder Fallback
                 employeeDate = individualDates[employeeKey] || requestData.arbeitsdatum;
             }
-
             const employeeTime = individualTimes[employeeKey] || requestData.arbeitszeit;
             const timeWorked = this.calculateDuration(employeeTime);
-
             const weatherData = await this.weatherService.getWeatherForDateAndLocation(employeeDate, requestData.ortBaustelle);
-
             return new TableRow({
                 children: [
-                    new TableCell({
-                        children: [new Paragraph({ children: [new TextRun({ text: this.formatDate(employeeDate), size: 20 })] })],
-                    }),
-                    new TableCell({
-                        children: [new Paragraph({ children: [new TextRun({ text: mitarbeiter.name, size: 20 })] })],
-                        columnSpan: 9,
-                    }),
-                    new TableCell({
-                        children: [new Paragraph({ children: [new TextRun({ text: mitarbeiter.qualifikation, size: 20 })] })],
-                        columnSpan: 4,
-                    }),
-                    new TableCell({
-                        children: [new Paragraph({ children: [new TextRun({ text: timeWorked, size: 20 })] })],
-                        columnSpan: 2,
-                    }),
-                    new TableCell({
-                        children: [new Paragraph({ children: [new TextRun({ text: employeeTime, size: 20 })] })],
-                        columnSpan: 2,
-                    }),
-                    new TableCell({
-                        children: [
-                            new Paragraph({ children: [new TextRun({ text: `min: ${weatherData.temperatureMin}`, size: 20 })] }),
-                            new Paragraph({ children: [new TextRun({ text: `max: ${weatherData.temperatureMax}`, size: 20 })] })
-                        ],
-                        columnSpan: 3,
-                    }),
-                    new TableCell({
-                        children: [new Paragraph({ children: [new TextRun({ text: weatherData.condition, size: 20 })] })],
-                    }),
+                    new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: this.formatDate(employeeDate), size: 20 })] })] }),
+                    new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: mitarbeiter.name, size: 20 })] })], columnSpan: 9 }),
+                    new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: mitarbeiter.qualifikation, size: 20 })] })], columnSpan: 4 }),
+                    new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: timeWorked, size: 20 })] })], columnSpan: 2 }),
+                    new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: employeeTime, size: 20 })] })], columnSpan: 2 }),
+                    new TableCell({ children: [
+                        new Paragraph({ children: [new TextRun({ text: `min: ${weatherData.temperatureMin}`, size: 20 })] }),
+                        new Paragraph({ children: [new TextRun({ text: `max: ${weatherData.temperatureMax}`, size: 20 })] })
+                    ], columnSpan: 3 }),
+                    new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: weatherData.condition, size: 20 })] })] }),
                 ],
             });
         }));
@@ -510,17 +385,13 @@ export class BautagesberichtGenerator {
             children: [
                 new TableCell({
                     children: [
-                        new Paragraph({
-                            children: [new TextRun({ text: "Leistungsbeschreibung", bold: true, size: 24 })],
-                        }),
+                        new Paragraph({ children: [new TextRun({ text: "Leistungsbeschreibung", bold: true, size: 24 })] }),
                     ],
                     columnSpan: 10,
                 }),
                 new TableCell({
                     children: [
-                        new Paragraph({
-                            children: [new TextRun({ text: "Besondere Vorkommnisse:", bold: true, size: 24 })],
-                        }),
+                        new Paragraph({ children: [new TextRun({ text: "Besondere Vorkommnisse:", bold: true, size: 24 })] }),
                     ],
                     columnSpan: 13,
                 }),
@@ -529,20 +400,13 @@ export class BautagesberichtGenerator {
     }
 
     private createWorkDescriptionRow(mitarbeiterList: any[], requestData: CreateReportRequest): TableRow {
-        // Extrahiere die Textdaten aus dem Request
         const regieTextDataFromRequest = requestData.regieTextData || {};
-
         return new TableRow({
             children: [
                 new TableCell({
                     children: [
-                        new Paragraph({
-                            children: [new TextRun({ text: "", size: 22 })],
-                        }),
-                        new Paragraph({
-                            children: [new TextRun({ text: "", size: 22 })],
-                        }),
-
+                        new Paragraph({ children: [new TextRun({ text: "", size: 22 })] }),
+                        new Paragraph({ children: [new TextRun({ text: "", size: 22 })] }),
                         ...this.createBautagesTextParagraphs(regieTextDataFromRequest, 'durchgefuehrte_arbeiten'),
                     ],
                     columnSpan: 10,
@@ -550,18 +414,10 @@ export class BautagesberichtGenerator {
                 }),
                 new TableCell({
                     children: [
-                        // Bedenkanmeldung oben (mittleres Feld nach oben bewegt)
-                        new Paragraph({
-                            children: [new TextRun({ text: "Bedenkanmeldung/Hinweise an den AG:", underline: { type: "single" }, size: 20 })],
-                        }),
+                        new Paragraph({ children: [new TextRun({ text: "Bedenkanmeldung/Hinweise an den AG:", underline: { type: "single" }, size: 20 })] }),
                         ...this.createBautagesTextParagraphs(regieTextDataFromRequest, 'bedenkanmeldung'),
-
-                        // Behinderungen in der Mitte
-                        new Paragraph({
-                            children: [new TextRun({ text: "Behinderungen/Erschwernisse/Begehungen/Abnahme", underline: { type: "single" }, size: 20 })],
-                        }),
+                        new Paragraph({ children: [new TextRun({ text: "Behinderungen/Erschwernisse/Begehungen/Abnahme", underline: { type: "single" }, size: 20 })] }),
                         ...this.createBautagesTextParagraphs(regieTextDataFromRequest, 'behinderungen'),
-
                     ],
                     columnSpan: 13,
                     verticalAlign: VerticalAlign.TOP,
@@ -570,7 +426,6 @@ export class BautagesberichtGenerator {
         });
     }
 
-    // Neue Hilfsmethode für Bautagesberichte (ähnlich wie bei RegieGenerator)
     private createBautagesTextParagraphs(regieTextData: any, field: string): Paragraph[] {
         if (regieTextData[field]) {
             return [
@@ -590,32 +445,21 @@ export class BautagesberichtGenerator {
             children: [
                 new TableCell({
                     children: [
-                        new Paragraph({
-                            children: [new TextRun({ text: `Datum: ${this.formatDate(requestData.arbeitsdatum)}`, size: 20 })],
-                        }),
-
+                        new Paragraph({ children: [new TextRun({ text: `Datum: ${this.formatDate(requestData.arbeitsdatum)}`, size: 20 })] }),
                     ],
                     columnSpan: 3,
                 }),
                 new TableCell({
                     children: [
-                        new Paragraph({
-                            children: [new TextRun({ text: `AN: ${mitarbeiterList.length > 0 ? mitarbeiterList[0].name : ''}`, size: 20 })],
-                        }),
+                        new Paragraph({ children: [new TextRun({ text: `AN: ${mitarbeiterList.length > 0 ? mitarbeiterList[0].name : ''}`, size: 20 })] }),
                     ],
                     columnSpan: 7,
                 }),
                 new TableCell({
                     children: [
-                        new Paragraph({
-                            children: [new TextRun({ text: "AG od. bevollmächtigter Vertreter:", size: 20 })],
-                        }),
-                        new Paragraph({
-                            children: [new TextRun({ text: "Name in Druckbuchstaben:", size: 20 })],
-                        }),
-                        new Paragraph({
-                            children: [new TextRun({ text: "", size: 16 })],
-                        }),
+                        new Paragraph({ children: [new TextRun({ text: "AG od. bevollmächtigter Vertreter:", size: 20 })] }),
+                        new Paragraph({ children: [new TextRun({ text: "Name in Druckbuchstaben:", size: 20 })] }),
+                        new Paragraph({ children: [new TextRun({ text: "", size: 16 })] }),
                     ],
                     columnSpan: 13,
                 }),

@@ -18,7 +18,6 @@ export class MitarbeiterReader {
             const csvContent = fs.readFileSync(this.csvPath, 'utf-8');
             const lines = csvContent.split('\n').filter(line => line.trim());
             const dataLines = lines.slice(1);
-
             return dataLines.map(line => {
                 const columns = line.split(';');
                 return {
@@ -26,8 +25,7 @@ export class MitarbeiterReader {
                     qualifikation: columns[1]?.trim() || ''
                 };
             });
-        } catch (error) {
-            console.error('Error reading Mitarbeiter CSV file:', error);
+        } catch {
             return [];
         }
     }
