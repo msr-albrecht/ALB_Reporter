@@ -11,7 +11,7 @@ body {
     display: flex;
     justify-content: center;
     align-items: center;
-    padding: 20px;
+    padding: 10px;
 }
 
 .table-wrapper {
@@ -152,22 +152,6 @@ nav ul li a:hover {
     line-height: 1.2;
 }
 
-* {
-    box-sizing: border-box;
-    margin: 0;
-    padding: 0;
-}
-
-body {
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    min-height: 100vh;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    padding: 20px;
-}
-
 .container {
     background: white;
     border-radius: 15px;
@@ -175,7 +159,7 @@ body {
     padding: 40px;
     width: 100%;
     max-width: 800px;
-    max-height: 80vh;
+    max-height: 90vh;
     overflow: auto;
     display: flex;
     flex-direction: column;
