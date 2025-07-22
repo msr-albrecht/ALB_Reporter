@@ -18,6 +18,8 @@
         </nav>
         <h2>Bearbeite die CSV-Tabelle</h2>
         <div id="csvTable" style="margin-top: 20px;"></div>
+        <h2 style="margin-top:40px;">Arbeiter-Tabelle</h2>
+        <div id="arbeiterTable" style="margin-top: 20px;"></div>
     </div>
     <script>
         async function loadCsvTable() {
@@ -31,13 +33,22 @@
                 // Fehlerbehandlung kann ergänzt werden
             }
         }
+        async function loadArbeiterTable() {
+            try {
+                const res = await fetch('/api/arbeiter-table');
+                const result = await res.json();
+                if (result.success && Array.isArray(result.data)) {
+                    arbeiterHot.loadData(result.data);
+                }
+            } catch (e) {}
+        }
         const container = document.getElementById('csvTable');
         const hot = new Handsontable(container, {
-            data: [], // Initial leer, wird geladen
+            data: [],
             rowHeaders: true,
             colHeaders: true,
             licenseKey: 'non-commercial-and-evaluation',
-            minSpareRows: 0, // Keine zusätzliche leere Zeile
+            minSpareRows: 0,
             contextMenu: true,
             afterChange: async function(changes, source) {
                 if (source === 'loadData') return;
@@ -71,7 +82,48 @@
                 } catch (e) {}
             }
         });
+        const arbeiterContainer = document.getElementById('arbeiterTable');
+        const arbeiterHot = new Handsontable(arbeiterContainer, {
+            data: [],
+            rowHeaders: true,
+            colHeaders: true,
+            licenseKey: 'non-commercial-and-evaluation',
+            minSpareRows: 0,
+            contextMenu: true,
+            afterChange: async function(changes, source) {
+                if (source === 'loadData') return;
+                const tableData = arbeiterHot.getData();
+                try {
+                    await fetch('/api/save-arbeiter', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({data: tableData})
+                    });
+                } catch (e) {}
+            },
+            afterCreateRow: async function(index, amount) {
+                const tableData = arbeiterHot.getData();
+                try {
+                    await fetch('/api/save-arbeiter', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({data: tableData})
+                    });
+                } catch (e) {}
+            },
+            afterRemoveRow: async function(index, amount, removedRows, changes) {
+                const tableData = arbeiterHot.getData();
+                try {
+                    await fetch('/api/save-arbeiter', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({data: tableData})
+                    });
+                } catch (e) {}
+            }
+        });
         loadCsvTable();
+        loadArbeiterTable();
     </script>
 </body>
 </html>

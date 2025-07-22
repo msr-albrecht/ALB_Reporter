@@ -3,6 +3,7 @@ import { ReportService, CreateReportRequest } from './reportService';
 import { CsvReader } from './csvReader';
 import { MitarbeiterReader } from './mitarbeiterReader';
 import fs from 'fs';
+import path from 'path";
 
 export const reportRouter = Router();
 const reportService = new ReportService();
@@ -222,5 +223,37 @@ reportRouter.post('/save-csv', async (req: Request, res: Response) => {
         return res.json({ success: true });
     } catch (error) {
         return res.status(500).json({ success: false, message: 'Fehler beim Speichern der CSV-Tabelle' });
+    }
+});
+
+// Arbeiter-Tabelle laden
+reportRouter.get('/arbeiter-table', async (req: Request, res: Response) => {
+    try {
+        const arbeiterCsvPath = path.join(__dirname, '../../arbeiter.csv');
+        const arbeiterReader = new CsvReader(arbeiterCsvPath);
+        const arbeiterData = await arbeiterReader.readCsvData();
+        // Wandelt die Objekte in ein Array von Arrays (wie Handsontable erwartet)
+        const rows = arbeiterData.map(obj => Object.values(obj));
+        // Header aus erster Zeile der CSV holen
+        const csvContent = fs.readFileSync(arbeiterCsvPath, 'utf-8');
+        const header = csvContent.split('\n')[0].split(';');
+        rows.unshift(header);
+        res.json({ success: true, data: rows });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Fehler beim Laden der Arbeiter-Daten' });
+    }
+});
+
+// Arbeiter-Tabelle speichern
+reportRouter.post('/save-arbeiter', async (req: Request, res: Response) => {
+    try {
+        const arbeiterCsvPath = path.join(__dirname, '../../arbeiter.csv');
+        const { data } = req.body;
+        // Wandelt das Array von Arrays zurück in CSV-Text
+        const csvText = data.map((row: string[]) => row.join(';')).join('\n');
+        fs.writeFileSync(arbeiterCsvPath, csvText, 'utf-8');
+        res.json({ success: true });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Fehler beim Speichern der Arbeiter-Daten' });
     }
 });
