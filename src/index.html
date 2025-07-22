@@ -489,8 +489,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Checkboxen NUR anzeigen, wenn NICHT Bautagesbericht
                 if (documentType !== 'bautagesbericht') {
                     wzCheckboxHtml = `
-                        <div class="wz-checkbox-wrapper">
-                            <label>
+                        <div style="display: flex; align-items: center;">
+                            <span style="margin-right:10px; font-size: 0.95em; color: #888;">Nur der Fahrer!</span>
+                            <label style="margin-left:10px;">
                                 <input type="checkbox" id="wz_anreise_${index}" name="wz_anreise_${index}" class="wz-checkbox-anreise">
                                 Anreise
                             </label>
