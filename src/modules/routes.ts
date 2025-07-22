@@ -3,7 +3,7 @@ import { ReportService, CreateReportRequest } from './reportService';
 import { CsvReader } from './csvReader';
 import { MitarbeiterReader } from './mitarbeiterReader';
 import fs from 'fs';
-import path from 'path";
+import path from 'path';
 
 export const reportRouter = Router();
 const reportService = new ReportService();
@@ -236,7 +236,8 @@ reportRouter.get('/arbeiter-table', async (req: Request, res: Response) => {
         const rows = arbeiterData.map(obj => Object.values(obj));
         // Header aus erster Zeile der CSV holen
         const csvContent = fs.readFileSync(arbeiterCsvPath, 'utf-8');
-        const header = csvContent.split('\n')[0].split(';');
+        const headerLine = csvContent.split('\n')[0];
+        const header = headerLine ? headerLine.split(';') : [];
         rows.unshift(header);
         res.json({ success: true, data: rows });
     } catch (error) {
