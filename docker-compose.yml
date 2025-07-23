@@ -69,11 +69,12 @@ services:
       - ssl-data:/etc/x509/https
       - keycloak_data:/opt/keycloak/data
     environment:
+      - KC_PROXY_ADDRESS_FORWARDING=true
       - KC_HOSTNAME=berichte.msr-albrecht.at
       - KC_HOSTNAME_STRICT=false
       - KC_HOSTNAME_STRICT_HTTPS=false
       - KC_HTTP_ENABLED=true
-      - KC_PROXY=reencrypt
+      - KC_PROXY=edge
       - KEYCLOAK_ADMIN=admin
       - KEYCLOAK_ADMIN_PASSWORD=admin123
       - KC_HTTPS_CERTIFICATE_FILE=/etc/x509/https/cert.pem
