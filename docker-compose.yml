@@ -70,4 +70,25 @@ services:
       - keycloak_data:/opt/keycloak/data
     environment:
       - KC_HOSTNAME=berichte.msr-albrecht.at
-      - KC
+      - KC_HOSTNAME_STRICT=false
+      - KC_HOSTNAME_STRICT_HTTPS=false
+      - KC_HTTP_ENABLED=true
+      - KC_PROXY=reencrypt
+      - KEYCLOAK_ADMIN=admin
+      - KEYCLOAK_ADMIN_PASSWORD=admin123
+      - KC_HTTPS_CERTIFICATE_FILE=/etc/x509/https/cert.pem
+      - KC_HTTPS_CERTIFICATE_KEY_FILE=/etc/x509/https/key.pem
+    command: start-dev
+    networks:
+      - berichte-network # HIER NUR DER NETZWERKNAME
+    restart: unless-stopped
+
+volumes:
+  db-data:
+  ssl-data:
+  file-data:
+  keycloak_data:
+
+networks: # DIES IST DIE TOP-LEVEL NETWORKS SEKTION
+  berichte-network:
+    external: true # HIER MUSS EXTERNAL: TRUE STEHEN, DA ES VON ZWEI STACKS GENUTZT WIRD
