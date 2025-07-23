@@ -59,31 +59,6 @@ services:
       - berichte-network # HIER NUR DER NETZWERKNAME
     restart: unless-stopped
 
-  keycloak:
-    image: quay.io/keycloak/keycloak:24.0.4
-    container_name: keycloak
-    ports:
-      - "8080:8080"
-      - "8443:8443"
-    volumes:
-      - ssl-data:/etc/x509/https
-      - keycloak_data:/opt/keycloak/data
-    environment:
-      - KC_PROXY_ADDRESS_FORWARDING=true
-      - KC_HOSTNAME=berichte.msr-albrecht.at
-      - KC_HOSTNAME_STRICT=false
-      - KC_HOSTNAME_STRICT_HTTPS=false
-      - KC_HTTP_ENABLED=true
-      - KC_PROXY=edge
-      - KEYCLOAK_ADMIN=admin
-      - KEYCLOAK_ADMIN_PASSWORD=admin123
-      - KC_HTTPS_CERTIFICATE_FILE=/etc/x509/https/cert.pem
-      - KC_HTTPS_CERTIFICATE_KEY_FILE=/etc/x509/https/key.pem
-    command: start-dev
-    networks:
-      - berichte-network # HIER NUR DER NETZWERKNAME
-    restart: unless-stopped
-
 volumes:
   db-data:
   ssl-data:
