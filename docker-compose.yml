@@ -21,7 +21,8 @@ services:
     depends_on:
       - file-server
     networks:
-      - berichte-network
+      berichte-network:
+        driver: bridge
     restart: unless-stopped
 
   file-server:
@@ -39,7 +40,8 @@ services:
       PUBLIC_FILE_SERVER_URL: https://139.162.154.60:3003
       STORAGE_BASE_DIR: /app/storage
     networks:
-      - berichte-network
+      berichte-network:
+        driver: bridge
     restart: unless-stopped
 
   filebrowser:
@@ -56,7 +58,8 @@ services:
     depends_on:
       - file-server
     networks:
-      - berichte-network
+      berichte-network:
+        driver: bridge
     restart: unless-stopped
 
   keycloak:
@@ -80,7 +83,8 @@ services:
       - KC_HTTPS_CERTIFICATE_KEY_FILE=/etc/x509/https/key.pem
     command: start-dev
     networks:
-      - berichte-network
+      berichte-network:
+        driver: bridge
     restart: unless-stopped
 
 volumes:
