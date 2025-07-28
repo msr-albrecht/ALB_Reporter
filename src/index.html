@@ -5,76 +5,23 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Berichtsgenerator</title>
     <link rel="stylesheet" href="style.css" type="text/css">
-    <!-- Keycloak-JS als CDN eingebunden -->
-    <script src="https://cdn.jsdelivr.net/npm/keycloak-js@24.0.4/dist/keycloak.min.js"></script>
-    <!-- Keycloak-Login-Modul -->
-    <script type="module">
-        import { initKeycloak, login, logout, getUser, hasVerwalterRole } from './keycloak-js/keycloak-login.js';
-        const body = document.getElementById('mainBody');
-        const loadingDiv = document.getElementById('loadingKeycloak');
-        const appContent = document.getElementById('appContent');
-        const loginBtn = document.getElementById('loginBtn');
-        const logoutBtn = document.getElementById('logoutBtn');
-        const userInfo = document.getElementById('userInfo');
-        async function startAuth() {
-            const authenticated = await initKeycloak();
-            if (authenticated) {
-                body.style.display = '';
-                loadingDiv.style.display = 'none';
-                appContent.style.display = '';
-                loginBtn.style.display = 'none';
-                logoutBtn.style.display = '';
-                userInfo.textContent = 'Angemeldet als: ' + getUser();
-                // CSV-Tabellen-Knopf für Verwalter anzeigen
-                if (hasVerwalterRole()) {
-                    const csvTableNav = document.getElementById('csvTableNav');
-                    if (csvTableNav) csvTableNav.style.display = '';
-                }
-            } else {
-                loadingDiv.innerHTML = '<h2>Fehler bei der Anmeldung</h2><p>Bitte versuchen Sie es später erneut.</p>';
-            }
-        }
-        startAuth();
-        loginBtn.onclick = login;
-        logoutBtn.onclick = logout;
-    </script>
     <style>
         #logoutBtn {
-            background: #d32f2f;
-            color: #fff;
-            border: none;
-            border-radius: 5px;
-            padding: 5px 12px;
-            font-size: 0.95rem;
-            cursor: pointer;
-            margin-left: 5px;
-            transition: background 0.2s;
-        }
-        #logoutBtn:hover {
-            background: #b71c1c;
+            display: none;
         }
         #userInfo {
-            font-weight: bold;
-            color: #333;
-            font-size: 1.05rem;
-            margin-left: 10px;
-            display: inline-block;
-            vertical-align: middle;
+            display: none;
         }
     </style>
 </head>
-<body style="display:none;" id="mainBody">
-<div id="loadingKeycloak" style="text-align:center;margin-top:100px;">
-    <h2>🔒 Anmeldung erforderlich...</h2>
-    <p>Bitte warten, Sie werden zur Anmeldung weitergeleitet.</p>
-</div>
-<div class="container" id="appContent" style="display:none;">
+<body id="mainBody">
+<div class="container" id="appContent">
     <div class="header">
         <div class="header-content">
             <div class="header-left">
                 <nav>
                     <ul>
-                        <li id="csvTableNav" style="display:none;"><a href="./csv-table.html">CSV-Tabelle</a></li>
+                        <li id="csvTableNav"><a href="./csv-table.html">CSV-Tabelle</a></li>
                         <li><a href="http://139.162.154.60:8180" target="_blank">📁 Dateibrowser</a></li>
                     </ul>
                 </nav>
@@ -82,11 +29,6 @@
                 <p>Erstellen Sie professionelle Berichte mit automatischer Nummerierung</p>
             </div>
             <div class="header-right">
-                <button id="loginBtn" style="display:none;">Anmelden</button>
-                <div id="userContainer" style="margin: 15px 0;">
-                    <div id="userInfo"></div>
-                    <button id="logoutBtn" style="display:none; margin-top:8px; margin-left:0;">Abmelden</button>
-                </div>
                 <div class="report-number-input">
                     <label for="customReportNumber">Berichtsnummer:</label>
                     <input type="number" id="customReportNumber" name="customReportNumber"
@@ -263,10 +205,6 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Keycloak Konfiguration
-    // Entfernt: loginBtn.onclick, logoutBtn.onclick, updateUI, keycloak.init
-    // Die Authentifizierung und UI-Steuerung erfolgt jetzt ausschließlich über das Modul keycloak-login.js im <head>.
-
     const form = document.getElementById('berichtForm');
     const successMessage = document.getElementById('successMessage');
     const showReportsBtn = document.getElementById('showReportsBtn');
